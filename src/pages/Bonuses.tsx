@@ -161,7 +161,7 @@ export default function Bonuses() {
                   onClick={() => {
                     analytics.track('bonus_folder_accessed', { email });
                     // User will provide the actual Google Drive link
-                    alert('Please add your Google Drive folder link here');
+                    alert('https://drive.google.com/drive/u/8/folders/10FKqvFsULxEbIsG73K91e_Yn0v-6XaEk');
                   }}
                 >
                   <Download className="h-4 w-4 mr-2" />
