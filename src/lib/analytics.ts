@@ -3,6 +3,8 @@ export interface AnalyticsEvent {
   event: string;
   properties?: Record<string, any>;
   timestamp: number;
+  userId?: string;
+  sessionId: string;
 }
 
 class Analytics {
@@ -11,12 +13,34 @@ class Analytics {
   private pageViewTime: number;
   private clicks: Record<string, number> = {};
   private abandonedCarts: number = 0;
+  private sessionId: string;
+  private userId?: string;
 
   constructor() {
     this.sessionStartTime = Date.now();
     this.pageViewTime = Date.now();
+    this.sessionId = this.generateSessionId();
     this.loadEvents();
     this.setupClickTracking();
+    this.setupPageVisibilityTracking();
+  }
+
+  private generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private setupPageVisibilityTracking() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.track('page_hidden', { 
+          timeOnPage: Date.now() - this.pageViewTime,
+          url: window.location.pathname 
+        });
+      } else {
+        this.pageViewTime = Date.now();
+        this.track('page_visible', { url: window.location.pathname });
+      }
+    });
   }
 
   private setupClickTracking() {
@@ -47,13 +71,53 @@ class Analytics {
         sessionDuration: Date.now() - this.sessionStartTime,
         pageViewDuration: Date.now() - this.pageViewTime,
         url: window.location.pathname,
+        userAgent: navigator.userAgent,
+        referrer: document.referrer,
+        screenResolution: `${screen.width}x${screen.height}`,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
       },
       timestamp: Date.now(),
+      sessionId: this.sessionId,
+      userId: this.userId,
     };
 
     this.events.push(analyticsEvent);
     this.saveEvents();
     console.log('Analytics Event:', analyticsEvent);
+    
+    // Also log to a separate detailed log for debugging
+    this.logDetailedEvent(analyticsEvent);
+  }
+
+  private logDetailedEvent(event: AnalyticsEvent) {
+    const detailedLogs = JSON.parse(localStorage.getItem('detailed_analytics_log') || '[]');
+    detailedLogs.push({
+      ...event,
+      readableTime: new Date(event.timestamp).toLocaleString(),
+      sessionDuration: this.formatDuration(Date.now() - this.sessionStartTime)
+    });
+    
+    // Keep only last 1000 events to prevent storage overflow
+    if (detailedLogs.length > 1000) {
+      detailedLogs.splice(0, detailedLogs.length - 1000);
+    }
+    
+    localStorage.setItem('detailed_analytics_log', JSON.stringify(detailedLogs));
+  }
+
+  private formatDuration(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  }
+
+  setUserId(userId: string) {
+    this.userId = userId;
+    this.track('user_identified', { userId });
   }
 
   pageView(page: string) {
@@ -88,21 +152,59 @@ class Analytics {
     this.track('bonus_interaction', { bonusId, action });
   }
 
+  trackFormSubmission(formType: string, formData: any) {
+    this.track('form_submitted', { 
+      formType, 
+      formData: {
+        ...formData,
+        // Remove sensitive data but keep structure
+        email: formData.email ? 'provided' : 'not_provided',
+        phone: formData.phone ? 'provided' : 'not_provided',
+        firstName: formData.firstName ? 'provided' : 'not_provided',
+        lastName: formData.lastName ? 'provided' : 'not_provided',
+      }
+    });
+  }
+
+  trackUserJourney(step: string, data?: any) {
+    this.track('user_journey', { step, ...data });
+  }
+
   getEvents() {
     return this.events;
   }
 
+  getDetailedLog() {
+    return JSON.parse(localStorage.getItem('detailed_analytics_log') || '[]');
+  }
+
   getAnalyticsSummary() {
+    const events = this.events;
+    const formSubmissions = events.filter(e => e.event === 'form_submitted');
+    const packageSelections = events.filter(e => e.event === 'package_selected');
+    const bonusUnlocks = events.filter(e => e.event === 'bonuses_unlocked');
+    
     const summary = {
-      totalEvents: this.events.length,
+      totalEvents: events.length,
       totalClicks: Object.values(this.clicks).reduce((a, b) => a + b, 0),
       clicksByElement: this.clicks,
       abandonedCarts: this.abandonedCarts,
-      pageViews: this.events.filter(e => e.event === 'page_view').length,
-      packageSelections: this.events.filter(e => e.event === 'package_selected'),
-      bonusDownloads: this.events.filter(e => e.event === 'bonus_downloaded'),
-      emailsCollected: this.events.filter(e => e.event === 'bonuses_unlocked').length,
-      sessionDuration: Date.now() - this.sessionStartTime
+      pageViews: events.filter(e => e.event === 'page_view').length,
+      packageSelections: packageSelections,
+      bonusDownloads: events.filter(e => e.event === 'bonus_downloaded'),
+      emailsCollected: bonusUnlocks.length,
+      formSubmissions: formSubmissions.length,
+      sessionDuration: this.formatDuration(Date.now() - this.sessionStartTime),
+      sessionId: this.sessionId,
+      userId: this.userId,
+      conversionFunnel: {
+        visitedHome: events.some(e => e.event === 'page_view' && e.properties?.page === 'home'),
+        visitedPackages: events.some(e => e.event === 'page_view' && e.properties?.page === 'test_packages'),
+        visitedBonuses: events.some(e => e.event === 'page_view' && e.properties?.page === 'bonuses'),
+        selectedPackage: packageSelections.length > 0,
+        submittedForm: formSubmissions.length > 0,
+        unlockedBonuses: bonusUnlocks.length > 0,
+      }
     };
     return summary;
   }
@@ -110,8 +212,29 @@ class Analytics {
   exportEvents() {
     return JSON.stringify({
       events: this.events,
-      summary: this.getAnalyticsSummary()
+      summary: this.getAnalyticsSummary(),
+      detailedLog: this.getDetailedLog(),
+      exportedAt: new Date().toISOString(),
     }, null, 2);
+  }
+
+  exportCSV() {
+    const events = this.events;
+    const headers = ['Timestamp', 'Event', 'Page', 'Session ID', 'User ID', 'Properties'];
+    const rows = events.map(event => [
+      new Date(event.timestamp).toLocaleString(),
+      event.event,
+      event.properties?.url || '',
+      event.sessionId || '',
+      event.userId || '',
+      JSON.stringify(event.properties || {})
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    return csv;
   }
 
   clearEvents() {
@@ -119,6 +242,7 @@ class Analytics {
     this.clicks = {};
     this.abandonedCarts = 0;
     localStorage.removeItem('analytics_events');
+    localStorage.removeItem('detailed_analytics_log');
   }
 }
 

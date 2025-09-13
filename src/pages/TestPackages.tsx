@@ -139,6 +139,9 @@ export default function TestPackages() {
       return;
     }
 
+    // Track form submission attempt
+    analytics.trackFormSubmission('package_order', formData);
+
     // Save lead data
     const lead = storage.addLead({
       firstName: formData.firstName,
@@ -149,12 +152,28 @@ export default function TestPackages() {
       source: 'test'
     });
 
+    // Set user ID for analytics
+    analytics.setUserId(lead.email);
+
     // Track analytics
     analytics.track('order_submitted', {
       package: selectedPackage?.id,
       grade: selectedPackage?.grade,
       price: selectedPackage?.price,
-      lead_id: lead.id
+      lead_id: lead.id,
+      formData: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        package: formData.package
+      }
+    });
+
+    // Track user journey
+    analytics.trackUserJourney('order_completed', {
+      package: selectedPackage?.id,
+      price: selectedPackage?.price
     });
 
     // Navigate to thank you page

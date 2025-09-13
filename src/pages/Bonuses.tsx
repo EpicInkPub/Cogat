@@ -54,14 +54,27 @@ export default function Bonuses() {
       return;
     }
 
+    // Track form submission
+    analytics.trackFormSubmission('bonus_signup', { email });
+
     // Save email and unlock bonuses
-    storage.addBonusSignup(email);
+    const signup = storage.addBonusSignup(email);
     localStorage.setItem('bonuses_unlocked', email);
     setIsUnlocked(true);
     setHasSubmitted(true);
 
+    // Set user ID for analytics
+    analytics.setUserId(email);
+
     // Track analytics
-    analytics.track('bonuses_unlocked', { email });
+    analytics.track('bonuses_unlocked', { 
+      email,
+      signup_id: signup.id,
+      timestamp: signup.timestamp
+    });
+
+    // Track user journey
+    analytics.trackUserJourney('bonuses_unlocked', { email });
 
     toast({
       title: "Success!",
