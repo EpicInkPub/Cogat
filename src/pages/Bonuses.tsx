@@ -160,8 +160,7 @@ export default function Bonuses() {
                   className="w-full"
                   onClick={() => {
                     analytics.track('bonus_folder_accessed', { email });
-                    // User will provide the actual Google Drive link
-                    alert('https://drive.google.com/drive/u/8/folders/10FKqvFsULxEbIsG73K91e_Yn0v-6XaEk');
+                    window.open('https://drive.google.com/drive/u/8/folders/10FKqvFsULxEbIsG73K91e_Yn0v-6XaEk', '_blank');
                   }}
                 >
                   <Download className="h-4 w-4 mr-2" />
