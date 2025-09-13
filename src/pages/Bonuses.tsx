@@ -42,7 +42,7 @@ export default function Bonuses() {
     return () => analytics.trackTimeOnPage('bonuses');
   }, []);
 
-  const handleUnlockBonuses = (e: React.FormEvent) => {
+  const handleUnlockBonuses = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
@@ -58,7 +58,7 @@ export default function Bonuses() {
     analytics.trackFormSubmission('bonus_signup', { email });
 
     // Save email and unlock bonuses
-    const signup = storage.addBonusSignup(email);
+    const signup = await storage.addBonusSignup(email);
     localStorage.setItem('bonuses_unlocked', email);
     setIsUnlocked(true);
     setHasSubmitted(true);

@@ -127,7 +127,7 @@ export default function TestPackages() {
     analytics.trackPackageView(pkg.id, pkg.price);
   };
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
@@ -143,7 +143,7 @@ export default function TestPackages() {
     analytics.trackFormSubmission('package_order', formData);
 
     // Save lead data
-    const lead = storage.addLead({
+    const lead = await storage.addLead({
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
