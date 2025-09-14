@@ -126,6 +126,14 @@ class OnlineDataCapture {
       userAgent: navigator.userAgent
     };
 
+    // Debug logging to console
+    console.log('🚀 Sending data to services:', {
+      type: payload.type,
+      dataKeys: Object.keys(payload.data),
+      url: payload.url,
+      timestamp: new Date(payload.timestamp).toLocaleString()
+    });
+
     // Try multiple services for better reliability
     const services = [
       this.sendToWebhook.bind(this),
@@ -138,10 +146,11 @@ class OnlineDataCapture {
     for (const service of services) {
       try {
         await service(payload);
+        console.log('✅ Service succeeded:', service.name);
         success = true;
         break; // If one succeeds, we're good
       } catch (error) {
-        console.warn(`Service failed:`, error);
+        console.warn(`❌ Service failed (${service.name}):`, error);
         continue;
       }
     }
@@ -150,7 +159,7 @@ class OnlineDataCapture {
     if (!success) {
       this.fallbackStorage.push(payload);
       localStorage.setItem('fallback_data', JSON.stringify(this.fallbackStorage));
-      console.warn('All services failed, data stored locally as fallback');
+      console.warn('❌ All services failed, data stored locally as fallback:', payload);
     }
   }
 
@@ -177,6 +186,9 @@ class OnlineDataCapture {
     const sheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_URL;
     if (!sheetsUrl) throw new Error('No Google Sheets URL configured');
 
+    console.log('📊 Sending to Google Sheets:', sheetsUrl);
+    console.log('📊 Payload:', JSON.stringify(payload, null, 2));
+
     const response = await fetch(sheetsUrl, {
       method: 'POST',
       headers: {
@@ -185,9 +197,16 @@ class OnlineDataCapture {
       body: JSON.stringify(payload)
     });
 
+    console.log('📊 Google Sheets response status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('📊 Google Sheets response:', responseText);
+
     if (!response.ok) {
-      throw new Error(`Google Sheets failed: ${response.status}`);
+      throw new Error(`Google Sheets failed: ${response.status} - ${responseText}`);
     }
+    
+    return responseText;
   }
 
   // Method 3: Formspree

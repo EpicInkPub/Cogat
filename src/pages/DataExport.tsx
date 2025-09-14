@@ -26,9 +26,12 @@ export default function DataExport() {
     
     // Check if services are working
     try {
+      console.log('🧪 Testing data capture service...');
       await dataCapture.captureAnalyticsEvent('data_export_test', { test: true });
       setOnlineStatus('✅ Online services working');
+      console.log('🧪 Test successful');
     } catch (error) {
+      console.error('🧪 Test failed:', error);
       setOnlineStatus('❌ Services offline - using fallback');
     }
   };

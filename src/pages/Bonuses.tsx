@@ -55,12 +55,16 @@ export default function Bonuses() {
       return;
     }
 
+    console.log('🎁 Submitting bonus signup with email:', email);
+
     // Track form submission
     analytics.trackFormStart('bonus_signup');
     analytics.trackFormSubmission('bonus_signup', { email }, true);
 
     // Capture bonus signup online
+    console.log('🎁 About to capture bonus signup...');
     const signup = await dataCapture.captureBonusSignup(email, 'bonus_page');
+    console.log('🎁 Bonus signup captured:', signup);
     localStorage.setItem('bonuses_unlocked', email);
     setIsUnlocked(true);
     setHasSubmitted(true);

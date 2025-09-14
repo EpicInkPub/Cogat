@@ -131,11 +131,14 @@ export default function TestPackages() {
       return;
     }
 
+    console.log('📝 Submitting lead form with data:', formData);
+
     // Track form submission attempt
     analytics.trackFormStart('package_order');
     analytics.trackFormSubmission('package_order', formData, true);
 
     // Capture lead data online
+    console.log('📝 About to capture lead...');
     const lead = await dataCapture.captureLead({
       firstName: formData.firstName,
       lastName: formData.lastName,
@@ -144,6 +147,7 @@ export default function TestPackages() {
       packageBought: selectedPackage?.title || 'unknown',
       source: 'test_package'
     });
+    console.log('📝 Lead captured:', lead);
 
     // Set user ID for analytics
     analytics.setUserId(lead.id);
