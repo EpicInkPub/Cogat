@@ -27,14 +27,13 @@ const packages: Package[] = [
   {
     id: "single",
     grade: "All Grades",
-    title: "1 Practice Test",
+    title: "1 Practice Test - Starter Package",
     description: "Perfect for getting started with CogAT preparation",
     price: "$9.99",
-    originalPrice: "$19.99",
+    originalPrice: "$14.99",
     features: [
-      "Complete CogAT practice test",
+      "1 complete CogAT practice test",
       "Detailed answer explanations",
-      "Score analysis and feedback",
       "Instant digital access",
       "Mobile-friendly format"
     ]
@@ -42,48 +41,42 @@ const packages: Package[] = [
   {
     id: "bundle3",
     grade: "All Grades",
-    title: "3 Practice Tests",
+    title: "3 Practice Tests - Essential Bundle",
     description: "Essential practice bundle for comprehensive preparation",
     price: "$24.99",
-    originalPrice: "$49.99",
+    originalPrice: "$34.99",
     features: [
       "3 full-length practice tests",
-      "All 9 CogAT test sections covered",
-      "Performance tracking dashboard",
+      "Detailed answer explanations for all questions",
       "Printable PDF format",
-      "30-day access guarantee"
     ],
     popular: true
   },
   {
     id: "bundle5",
     grade: "All Grades",
-    title: "5 Practice Tests",
+    title: "5 Practice Tests - Advanced Package",
     description: "Advanced preparation package for confident test-taking",
     price: "$39.99",
-    originalPrice: "$79.99",
+    originalPrice: "$54.99",
     features: [
       "5 complete practice tests",
-      "Personalized study recommendations",
-      "Video answer explanations",
-      "Parent progress reports",
-      "60-day access guarantee"
+      "Detailed answer explanations for all questions",
+      "Printable PDF format"
     ],
     popular: true
   },
   {
     id: "bundle10",
     grade: "All Grades",
-    title: "10 Practice Tests",
+    title: "10 Practice Tests - Ultimate Mastery",
     description: "Ultimate test mastery package with maximum practice",
     price: "$69.99",
-    originalPrice: "$149.99",
+    originalPrice: "$99.99",
     features: [
       "10 full-length practice tests",
-      "Unlimited practice attempts",
-      "Expert strategy guides",
-      "Priority email support",
-      "Lifetime access & updates"
+      "Detailed answer explanations for all questions",
+      "Printable PDF format"
     ]
   }
 ];
