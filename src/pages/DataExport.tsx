@@ -284,6 +284,15 @@ export default function DataExport() {
                       onClick={async () => {
                         try {
                           const leads = await database.getLeads();
+                        } catch (error) {
+                          console.error('Error exporting database:', error);
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export Database
+                    </Button>
                   </CardContent>
                 </Card>
 
