@@ -115,8 +115,8 @@ export default function TestPackages() {
     setSelectedPackage(pkg);
     setFormData({ ...formData, package: "kindergarten" }); // Default to kindergarten
     setShowOrderForm(true);
-    analytics.track('package_selected', { package: pkg.id, grade: pkg.grade, price: pkg.price });
-    analytics.trackPackageView(pkg.id, pkg.price);
+    analytics.trackPackageSelection(pkg.id, pkg.title, pkg.price);
+    analytics.trackPurchaseIntent(pkg.id, pkg.title, pkg.price);
   };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -132,7 +132,8 @@ export default function TestPackages() {
     }
 
     // Track form submission attempt
-    analytics.trackFormSubmission('package_order', formData);
+    analytics.trackFormStart('package_order');
+    analytics.trackFormSubmission('package_order', formData, true);
 
     // Save lead data
     const lead = await storage.addLead({
@@ -140,31 +141,22 @@ export default function TestPackages() {
       lastName: formData.lastName,
       email: formData.email,
       phone: formData.phone,
-      package: formData.package,
-      source: 'test'
+      packageBought: selectedPackage?.title || 'unknown',
+      source: 'test_package'
     });
 
     // Set user ID for analytics
-    analytics.setUserId(lead.email);
+    analytics.setUserId(lead.id);
 
-    // Track analytics
-    analytics.track('order_submitted', {
-      package: selectedPackage?.id,
-      grade: selectedPackage?.grade,
-      price: selectedPackage?.price,
-      lead_id: lead.id,
-      formData: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        package: formData.package
-      }
+    // Track purchase completion
+    analytics.trackPurchaseComplete({
+      ...lead,
+      price: selectedPackage?.price
     });
 
     // Track user journey
-    analytics.trackUserJourney('order_completed', {
-      package: selectedPackage?.id,
+    analytics.trackUserJourney('purchase_completed', {
+      packageId: selectedPackage?.id,
       price: selectedPackage?.price
     });
 
@@ -237,7 +229,10 @@ export default function TestPackages() {
                   <Button 
                     className="w-full"
                     variant={pkg.popular ? "hero" : "default"}
-                    onClick={() => handleSelectPackage(pkg)}
+                    onClick={() => {
+                      analytics.trackPackageView(pkg.id, pkg.title, pkg.price);
+                      handleSelectPackage(pkg);
+                    }}
                   >
                     Select Package
                   </Button>

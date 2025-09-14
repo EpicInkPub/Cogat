@@ -51,30 +51,30 @@ export default function Bonuses() {
         description: "Please enter a valid email address",
         variant: "destructive"
       });
+      analytics.trackError('Invalid email format', 'bonus_signup');
       return;
     }
 
     // Track form submission
-    analytics.trackFormSubmission('bonus_signup', { email });
+    analytics.trackFormStart('bonus_signup');
+    analytics.trackFormSubmission('bonus_signup', { email }, true);
 
     // Save email and unlock bonuses
-    const signup = await storage.addBonusSignup(email);
+    const signup = await storage.addBonusSignup(email, 'bonus_page');
     localStorage.setItem('bonuses_unlocked', email);
     setIsUnlocked(true);
     setHasSubmitted(true);
 
     // Set user ID for analytics
-    analytics.setUserId(email);
+    analytics.setUserId(signup.id);
 
-    // Track analytics
-    analytics.track('bonuses_unlocked', { 
-      email,
-      signup_id: signup.id,
-      timestamp: signup.timestamp
-    });
+    // Track bonus unlock
+    analytics.trackBonusUnlock(email);
 
     // Track user journey
-    analytics.trackUserJourney('bonuses_unlocked', { email });
+    analytics.trackUserJourney('bonuses_unlocked', { 
+      signupId: signup.id 
+    });
 
     toast({
       title: "Success!",
@@ -172,7 +172,7 @@ export default function Bonuses() {
                   variant="hero" 
                   className="w-full"
                   onClick={() => {
-                    analytics.track('bonus_folder_accessed', { email });
+                    analytics.trackBonusDownload('main_folder', 'All Bonus Materials');
                     window.open('https://drive.google.com/drive/u/8/folders/10FKqvFsULxEbIsG73K91e_Yn0v-6XaEk', '_blank');
                   }}
                 >

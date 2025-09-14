@@ -85,7 +85,7 @@ const Index = () => {
               variant="hero" 
               size="lg" 
               asChild
-              onClick={() => analytics.track('cta_click', { button: 'view_test_packages', location: 'hero' })}
+              onClick={() => analytics.trackCTAClick('View Test Packages', 'hero', '/packages')}
             >
               <Link to="/packages">
                 View Test Packages
@@ -96,7 +96,7 @@ const Index = () => {
               variant="outline" 
               size="lg" 
               asChild
-              onClick={() => analytics.track('cta_click', { button: 'free_bonus_materials', location: 'hero' })}
+              onClick={() => analytics.trackCTAClick('Free Bonus Materials', 'hero', '/bonuses')}
             >
               <Link to="/bonuses">
                 Free Bonus Materials
@@ -184,7 +184,7 @@ const Index = () => {
               variant="secondary" 
               size="lg" 
               asChild
-              onClick={() => analytics.track('cta_click', { button: 'get_started_now', location: 'footer_cta' })}
+              onClick={() => analytics.trackCTAClick('Get Started Now', 'footer_cta', '/packages')}
             >
               <Link to="/packages">
                 Get Started Now
@@ -196,7 +196,7 @@ const Index = () => {
               size="lg" 
               className="bg-white/10 border-white text-white hover:bg-white hover:text-primary"
               asChild
-              onClick={() => analytics.track('cta_click', { button: 'claim_free_resources', location: 'footer_cta' })}
+              onClick={() => analytics.trackCTAClick('Claim Free Resources', 'footer_cta', '/bonuses')}
             >
               <Link to="/bonuses">
                 Claim Free Resources
