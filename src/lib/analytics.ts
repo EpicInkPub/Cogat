@@ -1,5 +1,5 @@
-// Enhanced analytics tracking system
-import { storage } from './storage';
+// Enhanced analytics tracking system with online data capture
+import { dataCapture } from './dataCapture';
 
 export interface AnalyticsConfig {
   trackPageViews: boolean;
@@ -71,7 +71,7 @@ class EnhancedAnalytics {
       }
     });
 
-    // Track time on page
+    // Track time on page milestones
     setInterval(() => {
       const timeOnPage = Date.now() - this.pageStartTime;
       this.track('time_milestone', { 
@@ -110,15 +110,15 @@ class EnhancedAnalytics {
   }
 
   // Core tracking methods
-  track(eventName: string, properties: Record<string, any> = {}) {
-    return storage.trackEvent(eventName, {
+  async track(eventName: string, properties: Record<string, any> = {}) {
+    return await dataCapture.captureAnalyticsEvent(eventName, {
       ...properties,
       userId: this.userId,
       timestamp: Date.now(),
       url: window.location.href,
       referrer: document.referrer,
       userAgent: navigator.userAgent,
-    }, this.userId);
+    });
   }
 
   // Page tracking
@@ -132,8 +132,6 @@ class EnhancedAnalytics {
         url: window.location.href,
         referrer: document.referrer
       });
-      
-      storage.trackPageVisit(page, this.userId);
     }
   }
 
@@ -277,32 +275,14 @@ class EnhancedAnalytics {
     return `${seconds}s`;
   }
 
-  // Get analytics data
-  getEvents() {
-    return storage.getAnalyticsEvents();
+  // Get session info
+  getSessionId() {
+    return dataCapture.getSessionId();
   }
 
-  getClickCounts() {
-    return this.clickCounts;
-  }
-
-  getSummary() {
-    return storage.getAnalyticsSummary();
-  }
-
-  // Export methods
-  exportEvents() {
-    return storage.exportToJSON();
-  }
-
-  exportCSV() {
-    return storage.exportToCSV();
-  }
-
-  // Clear data
-  clearEvents() {
-    storage.clearAllData();
-    this.clickCounts = {};
+  // Retry failed submissions
+  async retryFailedSubmissions() {
+    return await dataCapture.retryFailedSubmissions();
   }
 }
 

@@ -16,7 +16,7 @@ import {
   Zap
 } from "lucide-react";
 import { analytics } from "@/lib/analytics";
-import { storage } from "@/lib/storage";
+import { dataCapture } from "@/lib/dataCapture";
 import { toast } from "@/hooks/use-toast";
 
 // Removed Bonus interface - no longer needed
@@ -59,8 +59,8 @@ export default function Bonuses() {
     analytics.trackFormStart('bonus_signup');
     analytics.trackFormSubmission('bonus_signup', { email }, true);
 
-    // Save email and unlock bonuses
-    const signup = await storage.addBonusSignup(email, 'bonus_page');
+    // Capture bonus signup online
+    const signup = await dataCapture.captureBonusSignup(email, 'bonus_page');
     localStorage.setItem('bonuses_unlocked', email);
     setIsUnlocked(true);
     setHasSubmitted(true);

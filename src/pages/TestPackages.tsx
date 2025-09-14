@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, Users, Clock, FileText, Award, Zap } from "lucide-react";
 import { analytics } from "@/lib/analytics";
-import { storage } from "@/lib/storage";
+import { dataCapture } from "@/lib/dataCapture";
 import { toast } from "@/hooks/use-toast";
 
 interface Package {
@@ -135,8 +135,8 @@ export default function TestPackages() {
     analytics.trackFormStart('package_order');
     analytics.trackFormSubmission('package_order', formData, true);
 
-    // Save lead data
-    const lead = await storage.addLead({
+    // Capture lead data online
+    const lead = await dataCapture.captureLead({
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
