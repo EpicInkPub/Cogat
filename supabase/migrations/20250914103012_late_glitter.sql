@@ -12,7 +12,7 @@ begin
   loop
     execute format('drop policy if exists %I on public.analytics_events;', r.policyname);
   end loop;
-end $$;
+end $$ language plpgsql;
 
 -- 2) Make sure roles have required privileges (RLS needs BOTH privilege + policy)
 grant usage on schema public to anon, authenticated;
