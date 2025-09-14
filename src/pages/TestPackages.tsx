@@ -63,8 +63,7 @@ const packages: Package[] = [
       "5 complete practice tests",
       "Detailed answer explanations for all questions",
       "Printable PDF format"
-    ],
-    popular: true
+    ]
   },
   {
     id: "bundle10",
@@ -197,11 +196,11 @@ export default function TestPackages() {
       {/* Packages Grid */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {packages.map((pkg) => (
               <Card 
                 key={pkg.id} 
-                className={`relative hover:shadow-xl transition-all duration-300 ${
+                className={`relative hover:shadow-xl transition-all duration-300 flex flex-col ${
                   pkg.popular ? 'border-primary shadow-lg' : ''
                 }`}
               >
@@ -220,7 +219,7 @@ export default function TestPackages() {
                   <CardTitle className="text-xl">{pkg.title}</CardTitle>
                   <CardDescription>{pkg.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                   <div className="mb-6">
                     <span className="text-3xl font-bold">{pkg.price}</span>
                     <span className="text-muted-foreground line-through ml-2">{pkg.originalPrice}</span>
@@ -234,7 +233,7 @@ export default function TestPackages() {
                     ))}
                   </ul>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="mt-auto">
                   <Button 
                     className="w-full"
                     variant={pkg.popular ? "hero" : "default"}

@@ -139,7 +139,7 @@ const Index = () => {
             </div>
             <div>
               <div className="text-4xl font-bold text-primary mb-2">K-Grade 5</div>
-              <div className="text-muted-foreground">CogAT Levels 5/6-11</div>
+              <div className="text-muted-foreground">Kindergarten to Grade 5</div>
             </div>
           </div>
         </div>
