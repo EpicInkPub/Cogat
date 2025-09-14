@@ -1,5 +1,3 @@
-import { database } from './supabase';
-
 // Data storage utilities for leads and form submissions
 export interface Lead {
   id: string;
@@ -67,22 +65,6 @@ class Storage {
     };
     this.leads.push(newLead);
     
-    // Save to Supabase database
-    try {
-      await database.insertLead({
-        first_name: lead.firstName,
-        last_name: lead.lastName,
-        email: lead.email,
-        phone: lead.phone,
-        package_selected: lead.package || 'unknown',
-        grade_selected: lead.package || 'unknown',
-        source: lead.source,
-        session_id: newLead.id
-      });
-    } catch (error) {
-      console.error('Failed to save lead to database:', error);
-    }
-    
     // Also save as form submission for detailed tracking
     this.addFormSubmission('package_order', newLead);
     
@@ -98,16 +80,6 @@ class Storage {
       sessionId,
     };
     this.bonusSignups.push(signup);
-    
-    // Save to Supabase database
-    try {
-      await database.insertBonusSignup({
-        email,
-        session_id: sessionId
-      });
-    } catch (error) {
-      console.error('Failed to save bonus signup to database:', error);
-    }
     
     // Also save as form submission for detailed tracking
     this.addFormSubmission('bonus_signup', { email, sessionId });

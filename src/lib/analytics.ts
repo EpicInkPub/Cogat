@@ -1,5 +1,3 @@
-import { database } from './supabase';
-
 // Analytics tracking utilities
 export interface AnalyticsEvent {
   event: string;
@@ -87,27 +85,8 @@ class Analytics {
     this.saveEvents();
     console.log('Analytics Event:', analyticsEvent);
     
-    // Save to Supabase database
-    this.saveToDatabase(analyticsEvent);
-    
     // Also log to a separate detailed log for debugging
     this.logDetailedEvent(analyticsEvent);
-  }
-
-  private async saveToDatabase(event: AnalyticsEvent) {
-    try {
-      await database.insertAnalyticsEvent({
-        event_name: event.event,
-        properties: event.properties || {},
-        session_id: event.sessionId,
-        user_id: event.userId,
-        page_url: event.properties?.url,
-        user_agent: event.properties?.userAgent
-      });
-    } catch (error) {
-      console.error('Failed to save analytics to database:', error);
-      // Continue without throwing to avoid breaking user experience
-    }
   }
 
   private logDetailedEvent(event: AnalyticsEvent) {
