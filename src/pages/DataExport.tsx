@@ -12,11 +12,20 @@ export default function DataExport() {
   const [sessionId, setSessionId] = useState('');
   const [fallbackData, setFallbackData] = useState<any[]>([]);
   const [onlineStatus, setOnlineStatus] = useState('checking...');
+  const [envVars, setEnvVars] = useState<any>({});
 
   useEffect(() => {
     analytics.pageView('data_export');
     
     loadData();
+    
+    // Check environment variables
+    setEnvVars({
+      googleSheetsUrl: import.meta.env.VITE_GOOGLE_SHEETS_URL,
+      webhookUrl: import.meta.env.VITE_WEBHOOK_URL,
+      formspreeUrl: import.meta.env.VITE_FORMSPREE_URL,
+      netlifyUrl: import.meta.env.VITE_NETLIFY_FORM_URL
+    });
   }, []);
 
   const loadData = async () => {
@@ -157,6 +166,15 @@ export default function DataExport() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Current Environment Variables:</h4>
+                      <div className="space-y-2 text-sm bg-muted p-4 rounded">
+                        <div>VITE_GOOGLE_SHEETS_URL: {envVars.googleSheetsUrl || 'NOT SET'}</div>
+                        <div>VITE_WEBHOOK_URL: {envVars.webhookUrl || 'NOT SET'}</div>
+                        <div>VITE_FORMSPREE_URL: {envVars.formspreeUrl || 'NOT SET'}</div>
+                        <div>VITE_NETLIFY_FORM_URL: {envVars.netlifyUrl || 'NOT SET'}</div>
+                      </div>
+                    </div>
                     <div>
                       <h4 className="font-medium mb-2">Environment Variables:</h4>
                       <div className="space-y-2 text-sm font-mono bg-muted p-4 rounded">

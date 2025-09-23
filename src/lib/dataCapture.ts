@@ -184,29 +184,40 @@ class OnlineDataCapture {
   // Method 2: Google Sheets via Google Apps Script
   private async sendToGoogleSheets(payload: any) {
     const sheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_URL;
-    if (!sheetsUrl) throw new Error('No Google Sheets URL configured');
+    if (!sheetsUrl) {
+      console.error('❌ VITE_GOOGLE_SHEETS_URL not configured in environment variables');
+      throw new Error('No Google Sheets URL configured');
+    }
 
-    console.log('📊 Sending to Google Sheets:', sheetsUrl);
+    console.log('📊 Sending to Google Sheets URL:', sheetsUrl);
     console.log('📊 Payload:', JSON.stringify(payload, null, 2));
 
-    const response = await fetch(sheetsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
-    });
+    try {
+      const response = await fetch(sheetsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
 
-    console.log('📊 Google Sheets response status:', response.status);
-    
-    const responseText = await response.text();
-    console.log('📊 Google Sheets response:', responseText);
+      console.log('📊 Google Sheets response status:', response.status);
+      console.log('📊 Google Sheets response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log('📊 Google Sheets response body:', responseText);
 
-    if (!response.ok) {
-      throw new Error(`Google Sheets failed: ${response.status} - ${responseText}`);
+      if (!response.ok) {
+        console.error('❌ Google Sheets request failed:', response.status, responseText);
+        throw new Error(`Google Sheets failed: ${response.status} - ${responseText}`);
+      }
+      
+      console.log('✅ Google Sheets request successful');
+      return responseText;
+    } catch (error) {
+      console.error('❌ Google Sheets request error:', error);
+      throw error;
     }
-    
-    return responseText;
   }
 
   // Method 3: Formspree
