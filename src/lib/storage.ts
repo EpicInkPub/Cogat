@@ -170,7 +170,7 @@ class EnhancedStorage {
     email: string;
     phone: string;
     packageBought: string;
-    gradeSelected: string;
+    gradeSelected?: string;
     source?: 'test_package' | 'bonus_access' | 'direct';
   }) {
     const lead: Lead = {
@@ -181,6 +181,7 @@ class EnhancedStorage {
       pageUrl: window.location.href,
       userAgent: navigator.userAgent,
       source: leadData.source || 'test_package',
+      gradeSelected: leadData.gradeSelected || 'not_specified',
     };
 
     this.leads.push(lead);

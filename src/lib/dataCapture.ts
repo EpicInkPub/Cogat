@@ -267,7 +267,7 @@ class OnlineDataCapture {
     email: string;
     phone: string;
     packageBought: string;
-    gradeSelected: string;
+    gradeSelected?: string;
     source?: 'test_package' | 'bonus_access' | 'direct';
   }) {
     const lead: LeadData = {
@@ -278,6 +278,7 @@ class OnlineDataCapture {
       pageUrl: window.location.href,
       userAgent: navigator.userAgent,
       source: leadData.source || 'test_package',
+      gradeSelected: leadData.gradeSelected || 'not_specified',
     };
 
     await this.sendData('lead', lead);
