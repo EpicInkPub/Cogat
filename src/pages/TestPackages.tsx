@@ -131,14 +131,22 @@ export default function TestPackages() {
       return;
     }
 
-    console.log('📝 Submitting lead form with data:', formData);
+    console.log('📝 Submitting lead form with data:', {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      packageBought: selectedPackage?.title,
+      gradeSelected: formData.package,
+      source: 'test_package'
+    });
 
     // Track form submission attempt
     analytics.trackFormStart('package_order');
     analytics.trackFormSubmission('package_order', formData, true);
 
     // Capture lead data online
-    console.log('📝 About to capture lead...');
+    console.log('📝 About to capture lead with dataCapture.captureLead...');
     const lead = await dataCapture.captureLead({
       firstName: formData.firstName,
       lastName: formData.lastName,

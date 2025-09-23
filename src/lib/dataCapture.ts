@@ -127,13 +127,10 @@ class OnlineDataCapture {
       userAgent: navigator.userAgent
     };
 
-    // Debug logging to console
-    console.log('🚀 Sending data to services:', {
-      type: payload.type,
-      dataKeys: Object.keys(payload.data),
-      url: payload.url,
-      timestamp: new Date(payload.timestamp).toLocaleString()
-    });
+    // Enhanced debug logging to console
+    console.log('🚀 sendData called with type:', type);
+    console.log('🚀 sendData payload:', JSON.stringify(payload, null, 2));
+    console.log('🚀 sendData payload.data:', JSON.stringify(payload.data, null, 2));
 
     // Try multiple services for better reliability
     const services = [
@@ -146,6 +143,7 @@ class OnlineDataCapture {
     let success = false;
     for (const service of services) {
       try {
+        console.log('🚀 Trying service:', service.name);
         await service(payload);
         console.log('✅ Service succeeded:', service.name);
         success = true;
@@ -270,6 +268,8 @@ class OnlineDataCapture {
     gradeSelected?: string;
     source?: 'test_package' | 'bonus_access' | 'direct';
   }) {
+    console.log('🔥 captureLead called with:', leadData);
+    
     const lead: LeadData = {
       ...leadData,
       id: crypto.randomUUID(),
@@ -281,11 +281,15 @@ class OnlineDataCapture {
       gradeSelected: leadData.gradeSelected || 'not_specified',
     };
 
+    console.log('🔥 Prepared lead object:', lead);
     await this.sendData('lead', lead);
+    console.log('🔥 Lead sent to sendData');
     return lead;
   }
 
   async captureBonusSignup(email: string, source: string = 'bonus_page') {
+    console.log('🔥 captureBonusSignup called with:', { email, source });
+    
     const signup: BonusSignup = {
       id: crypto.randomUUID(),
       email,
@@ -296,7 +300,9 @@ class OnlineDataCapture {
       source,
     };
 
+    console.log('🔥 Prepared bonus signup object:', signup);
     await this.sendData('bonus_signup', signup);
+    console.log('🔥 Bonus signup sent to sendData');
     return signup;
   }
 

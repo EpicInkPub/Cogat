@@ -62,7 +62,7 @@ export default function Bonuses() {
     analytics.trackFormSubmission('bonus_signup', { email }, true);
 
     // Capture bonus signup online
-    console.log('🎁 About to capture bonus signup...');
+    console.log('🎁 About to capture bonus signup with dataCapture.captureBonusSignup...');
     const signup = await dataCapture.captureBonusSignup(email, 'bonus_page');
     console.log('🎁 Bonus signup captured:', signup);
     localStorage.setItem('bonuses_unlocked', email);
