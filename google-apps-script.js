@@ -1,6 +1,5 @@
-```javascript
 // Replace with your actual Google Sheet ID
-const SPREADSHEHEET_ID = "YOUR_SPREADSHEET_ID_HERE"; 
+const SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE";
 const SHEET_NAME = "Raw Data";
 
 function doPost(e) {
@@ -190,4 +189,3 @@ function doOptions(e) {
     .createTextOutput('')
     .setMimeType(ContentService.MimeType.TEXT);
 }
-```
