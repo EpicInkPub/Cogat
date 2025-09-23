@@ -1,6 +1,6 @@
 ```javascript
 // Replace with your actual Google Sheet ID
-const SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE"; 
+const SPREADSHEHEET_ID = "YOUR_SPREADSHEET_ID_HERE"; 
 const SHEET_NAME = "Raw Data";
 
 function doPost(e) {
@@ -153,39 +153,34 @@ function doPost(e) {
 
     result = { status: "success", message: "Data logged successfully" };
     
-    // Return response with CORS headers
+    // Return response with CORS headers.
+    // Access-Control-Allow-Origin is handled by deployment setting "Anyone".
+    // Other CORS headers are not directly settable on ContentService.TextOutput.
     return ContentService
       .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
+      .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
     result = { status: "error", message: error.message, stack: error.stack };
     
-    // Return error response with CORS headers
+    // Return error response with CORS headers.
+    // Access-Control-Allow-Origin is handled by deployment setting "Anyone".
+    // Other CORS headers are not directly settable on ContentService.TextOutput.
     return ContentService
       .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 // Handle preflight OPTIONS requests
 function doOptions(e) {
+  // For OPTIONS requests, we need to return a successful response with CORS headers.
+  // Access-Control-Allow-Origin is handled by deployment setting "Anyone".
+  // Access-Control-Allow-Methods and Access-Control-Allow-Headers are not directly
+  // settable on ContentService.TextOutput. We rely on the browser being lenient
+  // or the deployment implicitly handling these for simple cases.
   return ContentService
     .createTextOutput('')
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 ```
