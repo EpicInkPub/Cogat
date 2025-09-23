@@ -59,31 +59,44 @@ export default function Bonuses() {
 
     // Track form submission
     analytics.trackFormStart('bonus_signup');
-    analytics.trackFormSubmission('bonus_signup', { email }, true);
 
     // Capture bonus signup online
-    console.log('🎁 About to capture bonus signup with dataCapture.captureBonusSignup...');
-    const signup = await dataCapture.captureBonusSignup(email, 'bonus_page');
-    console.log('🎁 Bonus signup captured:', signup);
-    localStorage.setItem('bonuses_unlocked', email);
-    setIsUnlocked(true);
-    setHasSubmitted(true);
+    try {
+      console.log('🎁 About to capture bonus signup with dataCapture.captureBonusSignup...');
+      const signup = await dataCapture.captureBonusSignup(email, 'bonus_page');
+      console.log('🎁 Bonus signup captured:', signup);
 
-    // Set user ID for analytics
-    analytics.setUserId(signup.id);
+      analytics.trackFormSubmission('bonus_signup', { email }, true);
+      localStorage.setItem('bonuses_unlocked', email);
+      setIsUnlocked(true);
+      setHasSubmitted(true);
 
-    // Track bonus unlock
-    analytics.trackBonusUnlock(email);
+      // Set user ID for analytics
+      analytics.setUserId(signup.id);
 
-    // Track user journey
-    analytics.trackUserJourney('bonuses_unlocked', { 
-      signupId: signup.id 
-    });
+      // Track bonus unlock
+      analytics.trackBonusUnlock(email);
 
-    toast({
-      title: "Success!",
-      description: "Your bonus materials have been unlocked. Click any item to download.",
-    });
+      // Track user journey
+      analytics.trackUserJourney('bonuses_unlocked', {
+        signupId: signup.id
+      });
+
+      toast({
+        title: "Success!",
+        description: "Your bonus materials have been unlocked. Click any item to download.",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to capture bonus signup:', error);
+      analytics.trackFormSubmission('bonus_signup', { email }, false);
+      analytics.trackError(`Bonus signup failed: ${errorMessage}`, 'bonus_signup');
+      toast({
+        title: "Submission Failed",
+        description: "We couldn't unlock your bonuses. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Removed handleDownload function - no longer needed

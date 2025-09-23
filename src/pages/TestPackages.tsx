@@ -143,44 +143,58 @@ export default function TestPackages() {
 
     // Track form submission attempt
     analytics.trackFormStart('package_order');
-    analytics.trackFormSubmission('package_order', formData, true);
 
     // Capture lead data online
-    console.log('📝 About to capture lead with dataCapture.captureLead...');
-    const lead = await dataCapture.captureLead({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      packageBought: selectedPackage?.title || 'unknown',
-      gradeSelected: formData.package,
-      source: 'test_package'
-    });
-    console.log('📝 Lead captured:', lead);
+    try {
+      console.log('📝 About to capture lead with dataCapture.captureLead...');
+      const lead = await dataCapture.captureLead({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        packageBought: selectedPackage?.title || 'unknown',
+        gradeSelected: formData.package,
+        source: 'test_package'
+      });
+      console.log('📝 Lead captured:', lead);
 
-    // Set user ID for analytics
-    analytics.setUserId(lead.id);
+      analytics.trackFormSubmission('package_order', formData, true);
 
-    // Track purchase completion
-    analytics.trackPurchaseComplete({
-      ...lead,
-      price: selectedPackage?.price
-    });
+      // Set user ID for analytics
+      analytics.setUserId(lead.id);
 
-    // Track user journey
-    analytics.trackUserJourney('purchase_completed', {
-      packageId: selectedPackage?.id,
-      price: selectedPackage?.price
-    });
+      // Track purchase completion
+      analytics.trackPurchaseComplete({
+        ...lead,
+        price: selectedPackage?.price
+      });
 
-    // Navigate to thank you page
-    navigate('/thank-you', { 
-      state: { 
-        name: formData.firstName,
-        package: selectedPackage?.title,
-        grade: selectedPackage?.grade
-      } 
-    });
+      // Track user journey
+      analytics.trackUserJourney('purchase_completed', {
+        packageId: selectedPackage?.id,
+        price: selectedPackage?.price
+      });
+
+      // Navigate to thank you page
+      navigate('/thank-you', {
+        state: {
+          name: formData.firstName,
+          package: selectedPackage?.title,
+          grade: selectedPackage?.grade
+        }
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to capture lead submission:', error);
+      analytics.trackFormSubmission('package_order', formData, false);
+      analytics.trackError(`Lead capture failed: ${errorMessage}`, 'test_packages');
+      toast({
+        title: 'Submission Failed',
+        description: 'We were unable to submit your information. Please try again.',
+        variant: 'destructive'
+      });
+      return;
+    }
   };
 
   return (
