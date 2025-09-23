@@ -127,6 +127,8 @@ class OnlineDataCapture {
       userAgent: navigator.userAgent
     };
 
+    console.log(`🚀 Preparing to send data of type: ${type} with payload data:`, payload.data);
+
     // Enhanced debug logging to console
     console.log('🚀 sendData called with type:', type);
     console.log('🚀 sendData payload:', JSON.stringify(payload, null, 2));
