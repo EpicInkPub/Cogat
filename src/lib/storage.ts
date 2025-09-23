@@ -6,6 +6,7 @@ export interface Lead {
   email: string;
   phone: string;
   packageBought: string;
+  gradeSelected: string;
   source: 'test_package' | 'bonus_access' | 'direct';
   timestamp: number;
   sessionId: string;
@@ -169,6 +170,7 @@ class EnhancedStorage {
     email: string;
     phone: string;
     packageBought: string;
+    gradeSelected: string;
     source?: 'test_package' | 'bonus_access' | 'direct';
   }) {
     const lead: Lead = {

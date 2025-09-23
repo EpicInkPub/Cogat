@@ -145,6 +145,7 @@ export default function TestPackages() {
       email: formData.email,
       phone: formData.phone,
       packageBought: selectedPackage?.title || 'unknown',
+      gradeSelected: formData.package,
       source: 'test_package'
     });
     console.log('📝 Lead captured:', lead);

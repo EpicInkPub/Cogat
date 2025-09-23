@@ -6,8 +6,15 @@ const SHEET_NAME = "Raw Data";
 function doPost(e) {
   let result = {};
   try {
+    // Debug logging - log the raw incoming data
+    Logger.log('Raw incoming data: ' + JSON.stringify(e.postData.contents));
+    
     // Parse the incoming JSON data
     const requestData = JSON.parse(e.postData.contents);
+    
+    // Debug logging - log the parsed data and type
+    Logger.log('Parsed requestData: ' + JSON.stringify(requestData));
+    Logger.log('Received type: ' + requestData.type);
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SHEET_NAME);

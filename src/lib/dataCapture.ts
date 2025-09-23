@@ -6,6 +6,7 @@ export interface LeadData {
   email: string;
   phone: string;
   packageBought: string;
+  gradeSelected: string;
   source: 'test_package' | 'bonus_access' | 'direct';
   timestamp: number;
   sessionId: string;
@@ -264,6 +265,7 @@ class OnlineDataCapture {
     email: string;
     phone: string;
     packageBought: string;
+    gradeSelected: string;
     source?: 'test_package' | 'bonus_access' | 'direct';
   }) {
     const lead: LeadData = {

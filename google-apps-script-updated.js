@@ -2,11 +2,25 @@
 const SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE"; // PASTE YOUR SPREADSHEET ID HERE
 const SHEET_NAME = "Raw Data";
 
+function doGet(e) {
+  // This function handles GET requests.
+  // It's good practice to have it, even if your primary use is POST requests.
+  // You can return a simple message to confirm the web app is running.
+  return ContentService.createTextOutput("Google Apps Script Web App is running. Send POST requests to submit data.");
+}
+
 function doPost(e) {
   let result = {};
   try {
+    // Debug logging - log the raw incoming data
+    Logger.log('Raw incoming data: ' + JSON.stringify(e.postData.contents));
+    
     // Parse the incoming JSON data
     const requestData = JSON.parse(e.postData.contents);
+    
+    // Debug logging - log the parsed data and type
+    Logger.log('Parsed requestData: ' + JSON.stringify(requestData));
+    Logger.log('Received type: ' + requestData.type);
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SHEET_NAME);
@@ -16,8 +30,7 @@ function doPost(e) {
       sheet = ss.insertSheet(SHEET_NAME);
     }
 
-    // Extract headers from the first data entry if the sheet is empty
-    // Or define a fixed set of headers
+    // Define a fixed set of headers
     const headers = [
       "Timestamp",
       "Type",
@@ -31,6 +44,7 @@ function doPost(e) {
       "Email",
       "Phone",
       "Package Bought",
+      "Grade Selected",
       "Source",
       "Time Spent",
       "Referrer",
@@ -60,7 +74,8 @@ function doPost(e) {
       row.push(""); // Email
       row.push(""); // Phone
       row.push(""); // Package Bought
-      row.push(""); // Source
+      row.push(""); // Grade Selected
+      row.push(requestData.data.source || ""); // Source (if applicable, though analytics events usually don't have this)
       row.push(""); // Time Spent
       row.push(requestData.data.referrer || ""); // Referrer
       row.push(""); // Error
@@ -68,6 +83,7 @@ function doPost(e) {
     }
     // Specific fields for lead
     else if (requestData.type === "lead") {
+      Logger.log('Processing lead data: ' + JSON.stringify(requestData.data));
       row.push(""); // Event Name
       row.push(""); // Properties
       row.push(requestData.data.firstName || ""); // First Name
@@ -75,6 +91,7 @@ function doPost(e) {
       row.push(requestData.data.email || ""); // Email
       row.push(requestData.data.phone || ""); // Phone
       row.push(requestData.data.packageBought || ""); // Package Bought
+      row.push(requestData.data.gradeSelected || ""); // Grade Selected
       row.push(requestData.data.source || ""); // Source
       row.push(""); // Time Spent
       row.push(""); // Referrer
@@ -83,6 +100,7 @@ function doPost(e) {
     }
     // Specific fields for bonus_signup
     else if (requestData.type === "bonus_signup") {
+      Logger.log('Processing bonus signup data: ' + JSON.stringify(requestData.data));
       row.push(""); // Event Name
       row.push(""); // Properties
       row.push(""); // First Name
@@ -90,6 +108,7 @@ function doPost(e) {
       row.push(requestData.data.email || ""); // Email
       row.push(""); // Phone
       row.push(""); // Package Bought
+      row.push(""); // Grade Selected
       row.push(requestData.data.source || ""); // Source
       row.push(""); // Time Spent
       row.push(""); // Referrer
@@ -105,6 +124,7 @@ function doPost(e) {
       row.push(""); // Email
       row.push(""); // Phone
       row.push(""); // Package Bought
+      row.push(""); // Grade Selected
       row.push(""); // Source
       row.push(requestData.data.timeSpent || ""); // Time Spent
       row.push(requestData.data.referrer || ""); // Referrer
@@ -120,6 +140,7 @@ function doPost(e) {
       row.push(""); // Email
       row.push(""); // Phone
       row.push(""); // Package Bought
+      row.push(""); // Grade Selected
       row.push(""); // Source
       row.push(""); // Time Spent
       row.push(""); // Referrer
@@ -128,6 +149,7 @@ function doPost(e) {
     }
     // For any other type, just log the raw data in properties
     else {
+      Logger.log('Unknown type, logging raw data: ' + JSON.stringify(requestData));
       row.push(requestData.type || ""); // Event Name
       row.push(JSON.stringify(requestData.data) || ""); // Properties
       row.push(""); // First Name
@@ -135,6 +157,7 @@ function doPost(e) {
       row.push(""); // Email
       row.push(""); // Phone
       row.push(""); // Package Bought
+      row.push(""); // Grade Selected
       row.push(""); // Source
       row.push(""); // Time Spent
       row.push(""); // Referrer
@@ -149,25 +172,16 @@ function doPost(e) {
     // Return response with CORS headers
     return ContentService
       .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
+      .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
+    Logger.log('Error in doPost: ' + error.message + ' Stack: ' + error.stack);
     result = { status: "error", message: error.message, stack: error.stack };
     
     // Return error response with CORS headers
     return ContentService
       .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
