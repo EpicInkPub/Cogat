@@ -198,8 +198,9 @@ class OnlineDataCapture {
     try {
       const response = await fetch(sheetsUrl, {
         method: 'POST',
+        // Use a simple request so Apps Script receives the POST directly without a preflight.
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=UTF-8',
         },
         body: JSON.stringify(payload)
       });
