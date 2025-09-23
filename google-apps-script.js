@@ -7,10 +7,13 @@ function doPost(e) {
   try {
     // Debug logging - log the raw incoming data
     Logger.log('Raw incoming data: ' + JSON.stringify(e.postData.contents));
-    
+
     // Parse the incoming JSON data
     const requestData = JSON.parse(e.postData.contents);
-    
+    // Note: Clients must send a simple POST request (no preflight) because Apps Script web apps
+    // only surface doPost/doGet handlers. Browsers will otherwise attempt an OPTIONS preflight
+    // that the web app cannot respond to, resulting in 405 errors before reaching this code.
+
     // Debug logging - log the parsed data and type
     Logger.log('Parsed requestData: ' + JSON.stringify(requestData));
     Logger.log('Received type: ' + requestData.type);
