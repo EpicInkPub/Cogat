@@ -206,17 +206,36 @@ class OnlineDataCapture {
 
       console.log('📊 Google Sheets response status:', response.status);
       console.log('📊 Google Sheets response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const responseText = await response.text();
-      console.log('📊 Google Sheets response body:', responseText);
+
+      let parsedResponse: any = null;
+      let fallbackText: string | null = null;
+
+      try {
+        parsedResponse = await response.clone().json();
+        console.log('📊 Google Sheets response JSON:', JSON.stringify(parsedResponse, null, 2));
+      } catch (parseError) {
+        console.warn('⚠️ Google Sheets response was not valid JSON, falling back to text parse:', parseError);
+        fallbackText = await response.text();
+        console.log('📊 Google Sheets response text:', fallbackText);
+      }
+
+      const responseStatus = parsedResponse?.status;
+      console.log('📊 Google Sheets parsed status:', responseStatus ?? 'unknown');
 
       if (!response.ok) {
-        console.error('❌ Google Sheets request failed:', response.status, responseText);
-        throw new Error(`Google Sheets failed: ${response.status} - ${responseText}`);
+        const errorMessage = parsedResponse?.message || parsedResponse?.error || fallbackText || `HTTP ${response.status}`;
+        console.error('❌ Google Sheets request failed:', response.status, errorMessage);
+        throw new Error(`Google Sheets failed: ${response.status} - ${errorMessage}`);
       }
-      
-      console.log('✅ Google Sheets request successful');
-      return responseText;
+
+      if (responseStatus === 'error') {
+        const errorMessage = parsedResponse?.message || parsedResponse?.error || fallbackText || 'Unknown error response from Google Sheets';
+        console.error('❌ Google Sheets reported error status:', errorMessage);
+        throw new Error(`Google Sheets reported error: ${errorMessage}`);
+      }
+
+      console.log('✅ Google Sheets request successful with status:', responseStatus ?? 'success');
+      return parsedResponse ?? fallbackText ?? '';
     } catch (error) {
       console.error('❌ Google Sheets request error:', error);
       throw error;
