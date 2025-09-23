@@ -191,7 +191,9 @@ class OnlineDataCapture {
     }
 
     console.log('📊 Sending to Google Sheets URL:', sheetsUrl);
-    console.log('📊 Payload:', JSON.stringify(payload, null, 2));
+    console.log('📊 Full payload being sent:', JSON.stringify(payload, null, 2));
+    console.log('📊 Payload type:', payload.type);
+    console.log('📊 Payload data:', JSON.stringify(payload.data, null, 2));
 
     try {
       const response = await fetch(sheetsUrl, {
