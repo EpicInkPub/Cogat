@@ -25,6 +25,8 @@ export interface LeadRecord {
   grade_selected: string;
   source?: string;
   session_id?: string;
+  page_url?: string;
+  user_agent?: string;
   created_at?: string;
 }
 
@@ -32,6 +34,9 @@ export interface BonusSignupRecord {
   id?: string;
   email: string;
   session_id?: string;
+  source?: string;
+  page_url?: string;
+  user_agent?: string;
   created_at?: string;
 }
 
