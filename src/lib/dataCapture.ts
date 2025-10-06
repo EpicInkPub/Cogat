@@ -179,6 +179,8 @@ export class OnlineDataCapture {
 
     let success = false;
     let serviceResult: unknown = null;
+
+    // Try Google Sheets and Supabase BOTH (don't stop after first success)
     for (const service of services) {
       const serviceName = formatServiceName(service);
       try {
@@ -186,7 +188,11 @@ export class OnlineDataCapture {
         serviceResult = await service(payload);
         console.log('✅ Service succeeded:', serviceName);
         success = true;
-        break; // If one succeeds, we're good
+
+        // Only break after Google Sheets AND Supabase have both been tried
+        if (serviceName === 'sendToSupabase' && services.length >= 2) {
+          break;
+        }
       } catch (error) {
         console.warn(`❌ Service failed (${serviceName}):`, error);
         errors.push({ service: serviceName, error });
