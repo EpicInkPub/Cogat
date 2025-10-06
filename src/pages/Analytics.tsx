@@ -83,39 +83,58 @@ export default function Analytics() {
   const loadAnalytics = async () => {
     setIsLoading(true);
     try {
-      const fallbackData = localStorage.getItem('fallback_data');
+      const sheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_URL;
 
-      if (!fallbackData) {
+      if (!sheetsUrl) {
         toast({
-          title: "No Data Available",
-          description: "No analytics data found. Data will appear as users interact with your site.",
+          title: "Google Sheets Not Configured",
+          description: "Please configure VITE_GOOGLE_SHEETS_URL to view analytics.",
+          variant: "destructive"
         });
         setIsLoading(false);
         return;
       }
 
-      const allData = JSON.parse(fallbackData);
+      const response = await fetch(sheetsUrl, {
+        method: 'GET',
+        redirect: 'follow',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch from Google Sheets: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.leads && !data.bonusSignups && !data.analyticsEvents) {
+        toast({
+          title: "No Data Available",
+          description: "No analytics data found in Google Sheets yet.",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       const now = new Date();
       const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       const startDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
 
-      const leads = allData.filter((item: any) =>
-        item.type === 'lead' &&
-        new Date(item.timestamp) >= startDate
-      ).map((item: any) => item.data);
+      const parseTimestamp = (timestamp: string) => {
+        const date = new Date(timestamp);
+        return isNaN(date.getTime()) ? new Date() : date;
+      };
 
-      const bonusSignups = allData.filter((item: any) =>
-        item.type === 'bonus_signup' &&
-        new Date(item.timestamp) >= startDate
-      ).map((item: any) => item.data);
+      const leads = (data.leads || []).filter((lead: any) =>
+        parseTimestamp(lead.timestamp) >= startDate
+      );
 
-      const events = allData.filter((item: any) =>
-        (item.type === 'analytics_event' ||
-         item.type === 'page_visit' ||
-         item.type === 'page_visit_end') &&
-        new Date(item.timestamp) >= startDate
-      ).map((item: any) => item.data);
+      const bonusSignups = (data.bonusSignups || []).filter((signup: any) =>
+        parseTimestamp(signup.timestamp) >= startDate
+      );
+
+      const events = (data.analyticsEvents || []).filter((event: any) =>
+        parseTimestamp(event.timestamp) >= startDate
+      );
 
       const totalLeads = leads.length;
       const totalBonusSignups = bonusSignups.length;
@@ -162,14 +181,14 @@ export default function Analytics() {
       }
 
       leads.forEach((lead: any) => {
-        const date = dateFormatter(new Date(lead.timestamp));
+        const date = dateFormatter(parseTimestamp(lead.timestamp));
         if (dailyData[date]) {
           dailyData[date].leads++;
         }
       });
 
       bonusSignups.forEach((signup: any) => {
-        const date = dateFormatter(new Date(signup.timestamp));
+        const date = dateFormatter(parseTimestamp(signup.timestamp));
         if (dailyData[date]) {
           dailyData[date].signups++;
         }
@@ -200,7 +219,7 @@ export default function Analytics() {
 
       toast({
         title: "Analytics Updated",
-        description: "Successfully loaded latest analytics data from local storage",
+        description: "Successfully loaded latest analytics data from Google Sheets",
       });
     } catch (error) {
       console.error('Failed to load analytics:', error);

@@ -31,18 +31,22 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData | null> 
   }
 
   try {
-    const response = await fetch(`${sheetsUrl}?action=fetch`, {
+    console.log('Fetching data from Google Sheets:', sheetsUrl);
+
+    const response = await fetch(sheetsUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+      redirect: 'follow',
     });
 
+    console.log('Google Sheets fetch response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.status}`);
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('Google Sheets data fetched successfully:', data);
+
     return data as GoogleSheetsData;
   } catch (error) {
     console.error('Failed to fetch Google Sheets data:', error);
