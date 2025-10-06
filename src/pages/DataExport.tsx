@@ -29,30 +29,22 @@ export default function DataExport() {
   }, []);
 
   const loadData = async () => {
-    // Load session and fallback data
-    setSessionId(dataCapture.getSessionId());
-    setFallbackData(dataCapture.getFallbackData());
-    
-    // Check if services are working
+    setSessionId('N/A');
+    setFallbackData([]);
+
     try {
       console.log('🧪 Testing data capture service...');
-      await dataCapture.captureAnalyticsEvent('data_export_test', { test: true });
+      await dataCapture.trackEvent('data_export_test', { test: true });
       setOnlineStatus('✅ Online services working');
       console.log('🧪 Test successful');
     } catch (error) {
       console.error('🧪 Test failed:', error);
-      setOnlineStatus('❌ Services offline - using fallback');
+      setOnlineStatus('❌ Services offline');
     }
   };
 
   const retryFailedSubmissions = async () => {
-    try {
-      await dataCapture.retryFailedSubmissions();
-      setOnlineStatus('✅ Failed submissions retried successfully');
-      loadData(); // Refresh data
-    } catch (error) {
-      setOnlineStatus('❌ Retry failed - services still offline');
-    }
+    setOnlineStatus('No retry needed - direct Supabase integration');
   };
 
   const downloadFallbackData = () => {
