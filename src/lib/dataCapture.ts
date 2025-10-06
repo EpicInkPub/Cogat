@@ -71,8 +71,8 @@ export class OnlineDataCapture {
 
   constructor(options: { enableTracking?: boolean } = {}) {
     this.sessionId = this.generateSessionId();
-    // You can configure this to point to your preferred service
-    this.apiEndpoint = import.meta.env.VITE_DATA_CAPTURE_ENDPOINT || 'https://api.example.com/capture';
+    const endpoint = import.meta.env.VITE_DATA_CAPTURE_ENDPOINT;
+    this.apiEndpoint = typeof endpoint === 'string' ? endpoint.trim() : '';
     this.trackingEnabled = options.enableTracking ?? true;
     if (this.trackingEnabled) {
       this.setupPageTracking();
@@ -154,13 +154,22 @@ export class OnlineDataCapture {
     console.log('🚀 sendData payload:', JSON.stringify(payload, null, 2));
     console.log('🚀 sendData payload.data:', JSON.stringify(payload.data, null, 2));
 
-    const services = [
-      this.sendToSupabase.bind(this),
+    const services: Array<(payload: any) => Promise<any>> = [];
+
+    if (this.apiEndpoint) {
+      services.push(this.sendToBackend.bind(this));
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      services.push(this.sendToSupabase.bind(this));
+    }
+
+    services.push(
       this.sendToGoogleSheets.bind(this),
       this.sendToWebhook.bind(this),
       this.sendToFormspree.bind(this),
       this.sendToNetlifyForms.bind(this)
-    ];
+    );
 
     const formatServiceName = (serviceFn: (payload: any) => Promise<void>) =>
       serviceFn.name?.replace(/^bound\s+/, '') || 'unknown';
@@ -352,6 +361,57 @@ export class OnlineDataCapture {
     } catch (error) {
       console.error('❌ Supabase error:', error);
       throw new Error(`Supabase failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async sendToBackend(payload: any) {
+    if (!this.apiEndpoint) {
+      throw new Error('No data capture endpoint configured');
+    }
+
+    console.log('🌐 Sending payload to backend endpoint:', this.apiEndpoint);
+
+    try {
+      const response = await fetch(this.apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      let parsed: any = null;
+      let fallbackText: string | null = null;
+
+      try {
+        parsed = await response.clone().json();
+      } catch (parseError) {
+        console.warn('⚠️ Backend response was not JSON, falling back to text parse:', parseError);
+        fallbackText = await response.text();
+      }
+
+      if (!response.ok) {
+        const errorMessage =
+          (parsed && typeof parsed === 'object' && 'error' in parsed && typeof parsed.error === 'string'
+            ? parsed.error
+            : null) || fallbackText || `HTTP ${response.status}`;
+        throw new Error(`Backend endpoint failed: ${errorMessage}`);
+      }
+
+      if (parsed && typeof parsed === 'object') {
+        const normalized =
+          'record' in parsed && parsed.record
+            ? parsed.record
+            : 'data' in parsed && parsed.data
+              ? parsed.data
+              : parsed;
+        return normalized;
+      }
+
+      return fallbackText ?? null;
+    } catch (error) {
+      console.error('❌ Backend endpoint error:', error);
+      throw error;
     }
   }
 
