@@ -45,22 +45,52 @@ class EnhancedAnalytics {
     document.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       const identifier = this.getElementIdentifier(target);
-      
+
       this.clickCounts[identifier] = (this.clickCounts[identifier] || 0) + 1;
-      
-      this.track('element_clicked', {
+
+      console.log('🖱️ CLICK DETECTED:', identifier, target.tagName);
+
+      this.track('click', {
         element: identifier,
         tagName: target.tagName,
         className: target.className,
         id: target.id,
         text: target.textContent?.substring(0, 100),
         clickCount: this.clickCounts[identifier],
-        coordinates: { x: e.clientX, y: e.clientY }
+        coordinates: { x: e.clientX, y: e.clientY },
+        page: window.location.pathname
       });
-    });
+    }, true);
   }
 
   private setupUserInteractionTracking() {
+    // Track all input changes
+    document.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        console.log('⌨️ INPUT DETECTED:', target.name || target.id, target.type);
+        this.track('input_changed', {
+          fieldName: target.name || target.id || 'unknown',
+          fieldType: target.type || target.tagName,
+          hasValue: !!target.value,
+          page: window.location.pathname
+        });
+      }
+    }, true);
+
+    // Track focus on form fields
+    document.addEventListener('focus', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        console.log('🎯 FOCUS DETECTED:', target.name || target.id);
+        this.track('field_focused', {
+          fieldName: target.name || target.id || 'unknown',
+          fieldType: target.type || target.tagName,
+          page: window.location.pathname
+        });
+      }
+    }, true);
+
     // Track scroll depth
     let maxScrollDepth = 0;
     window.addEventListener('scroll', () => {
