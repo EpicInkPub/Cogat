@@ -90,9 +90,16 @@ Add the following entries to your `.env` file (or hosting provider):
 VITE_DATA_CAPTURE_ENDPOINT=https://your-bolt-new-function-url
 
 # Direct Supabase access (used as fallback)
+# The app now also reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` so you can
+# reuse the credentials provided by Supabase hosting without renaming them.
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+> **Tip:** Supabase hosting sometimes injects values wrapped in quotes (for
+> example `"https://xyz.supabase.co"`). The app now trims these automatically,
+> but you should verify the stored values do not include extra quotes or
+> whitespace so the browser can resolve the domain correctly.
 
 With these values in place the app can persist leads and contacts through your
 Bolt New backend functions while still retaining the enhanced client-side
