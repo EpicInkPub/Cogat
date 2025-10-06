@@ -60,44 +60,6 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## Why aren't my leads or contacts showing up in Supabase?
-
-Leads, bonus signups, and analytics events are now routed through a dedicated
-data capture endpoint before falling back to direct Supabase writes. This makes
-it possible to use Bolt New (or any other backend) to capture submissions and
-hydrate your Supabase tables server-side.
-
-Here's the order of operations:
-
-1. **Backend endpoint (`VITE_DATA_CAPTURE_ENDPOINT`)** – If configured, every
-   submission is posted to this URL first. The endpoint is expected to relay the
-   payload to Supabase (or any other persistence layer) and return the stored
-   record. This is the recommended way to integrate with Bolt New backend
-   functions.
-2. **Direct Supabase client** – If the backend endpoint is unavailable and the
-   browser has a valid Supabase configuration, the app falls back to writing
-   directly with the Supabase JavaScript client.
-3. **Other transports** – Google Sheets, webhooks, Formspree, Netlify forms,
-   and finally localStorage remain as additional fallbacks so no submission is
-   lost.
-
-### Required environment variables
-
-Add the following entries to your `.env` file (or hosting provider):
-
-```bash
-# Primary Bolt New / custom backend endpoint
-VITE_DATA_CAPTURE_ENDPOINT=https://your-bolt-new-function-url
-
-# Direct Supabase access (used as fallback)
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-With these values in place the app can persist leads and contacts through your
-Bolt New backend functions while still retaining the enhanced client-side
-fallbacks.
-
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/0f2329e5-71cc-4ed7-b9ad-7622f15b75de) and click on Share -> Publish.

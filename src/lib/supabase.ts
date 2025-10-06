@@ -1,19 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const hasSupabaseConfig = supabaseUrl && supabaseAnonKey;
-
-if (!hasSupabaseConfig) {
-  console.warn('Supabase environment variables not configured. Database features will be disabled.');
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = hasSupabaseConfig
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
-export const isSupabaseConfigured = hasSupabaseConfig;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface LeadRecord {
   id?: string;
@@ -25,8 +19,6 @@ export interface LeadRecord {
   grade_selected: string;
   source?: string;
   session_id?: string;
-  page_url?: string;
-  user_agent?: string;
   created_at?: string;
 }
 
@@ -34,9 +26,6 @@ export interface BonusSignupRecord {
   id?: string;
   email: string;
   session_id?: string;
-  source?: string;
-  page_url?: string;
-  user_agent?: string;
   created_at?: string;
 }
 

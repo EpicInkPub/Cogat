@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, type LeadRecord, type BonusSignupRecord, type AnalyticsEventRecord } from './supabase';
+import { supabase, type LeadRecord, type BonusSignupRecord, type AnalyticsEventRecord } from './supabase';
 
 export interface LeadData {
   id: string;
@@ -71,8 +71,8 @@ export class OnlineDataCapture {
 
   constructor(options: { enableTracking?: boolean } = {}) {
     this.sessionId = this.generateSessionId();
-    const endpoint = import.meta.env.VITE_DATA_CAPTURE_ENDPOINT;
-    this.apiEndpoint = typeof endpoint === 'string' ? endpoint.trim() : '';
+    // You can configure this to point to your preferred service
+    this.apiEndpoint = import.meta.env.VITE_DATA_CAPTURE_ENDPOINT || 'https://api.example.com/capture';
     this.trackingEnabled = options.enableTracking ?? true;
     if (this.trackingEnabled) {
       this.setupPageTracking();
@@ -154,22 +154,13 @@ export class OnlineDataCapture {
     console.log('🚀 sendData payload:', JSON.stringify(payload, null, 2));
     console.log('🚀 sendData payload.data:', JSON.stringify(payload.data, null, 2));
 
-    const services: Array<(payload: any) => Promise<any>> = [];
-
-    if (this.apiEndpoint) {
-      services.push(this.sendToBackend.bind(this));
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      services.push(this.sendToSupabase.bind(this));
-    }
-
-    services.push(
+    const services = [
+      this.sendToSupabase.bind(this),
       this.sendToGoogleSheets.bind(this),
       this.sendToWebhook.bind(this),
       this.sendToFormspree.bind(this),
       this.sendToNetlifyForms.bind(this)
-    );
+    ];
 
     const formatServiceName = (serviceFn: (payload: any) => Promise<void>) =>
       serviceFn.name?.replace(/^bound\s+/, '') || 'unknown';
@@ -177,12 +168,11 @@ export class OnlineDataCapture {
     const errors: Array<{ service: string; error: unknown }> = [];
 
     let success = false;
-    let serviceResult: unknown = null;
     for (const service of services) {
       const serviceName = formatServiceName(service);
       try {
         console.log('🚀 Trying service:', serviceName);
-        serviceResult = await service(payload);
+        await service(payload);
         console.log('✅ Service succeeded:', serviceName);
         success = true;
         break; // If one succeeds, we're good
@@ -198,83 +188,41 @@ export class OnlineDataCapture {
       this.fallbackStorage.push(payload);
       try {
         localStorage.setItem('fallback_data', JSON.stringify(this.fallbackStorage));
-        console.warn('⚠️ All online services unavailable. Data saved locally and will be available for export.', payload);
       } catch (storageError) {
         console.warn('⚠️ Failed to persist fallback data to localStorage:', storageError);
-
-        const context: DataCaptureErrorContext = {
-          type,
-          source:
-            typeof data === 'object' && data !== null && 'source' in data
-              ? String((data as { source?: unknown }).source)
-              : undefined,
-          servicesAttempted: services.map((serviceFn) => formatServiceName(serviceFn)),
-          errors: errors.map(({ service, error }) => ({
-            service,
-            message: error instanceof Error ? error.message : String(error),
-          })),
-        };
-
-        const baseMessage = context.source
-          ? `All data capture services failed for type "${type}" (source "${context.source}").`
-          : `All data capture services failed for type "${type}".`;
-        const reasonDetails = context.errors.length
-          ? ` Reasons: ${context.errors
-              .map(({ service, message }) => `${service}: ${message}`)
-              .join('; ')}.`
-          : '';
-
-        throw new DataCaptureSubmissionError(`${baseMessage}${reasonDetails}`, context);
       }
+      console.warn('❌ All services failed, data stored locally as fallback:', payload);
+
+      const context: DataCaptureErrorContext = {
+        type,
+        source:
+          typeof data === 'object' && data !== null && 'source' in data
+            ? String((data as { source?: unknown }).source)
+            : undefined,
+        servicesAttempted: services.map((serviceFn) => formatServiceName(serviceFn)),
+        errors: errors.map(({ service, error }) => ({
+          service,
+          message: error instanceof Error ? error.message : String(error),
+        })),
+      };
+
+      const baseMessage = context.source
+        ? `All data capture services failed for type "${type}" (source "${context.source}").`
+        : `All data capture services failed for type "${type}".`;
+      const reasonDetails = context.errors.length
+        ? ` Reasons: ${context.errors
+            .map(({ service, message }) => `${service}: ${message}`)
+            .join('; ')}.`
+        : '';
+
+      throw new DataCaptureSubmissionError(`${baseMessage}${reasonDetails}`, context);
     }
-
-    return serviceResult ?? payload;
-  }
-
-  private extractSupabaseMetadata(payload: any) {
-    const rawTimestamp =
-      (payload?.data && typeof payload.data === 'object' && 'timestamp' in payload.data)
-        ? Number((payload.data as { timestamp?: number | string }).timestamp)
-        : undefined;
-
-    const fallbackTimestamp = typeof rawTimestamp === 'number' && !Number.isNaN(rawTimestamp)
-      ? rawTimestamp
-      : typeof rawTimestamp === 'string' && rawTimestamp
-        ? Date.parse(rawTimestamp)
-        : undefined;
-
-    const timestampToUse = fallbackTimestamp ?? (typeof payload?.timestamp === 'number' ? payload.timestamp : Date.now());
-
-    const toIsoString = (value?: number) => {
-      if (!value || Number.isNaN(value)) return undefined;
-      try {
-        return new Date(value).toISOString();
-      } catch (error) {
-        console.warn('⚠️ Failed to convert timestamp to ISO string:', error);
-        return undefined;
-      }
-    };
-
-    const metadata = {
-      session_id: payload?.sessionId ?? payload?.data?.sessionId,
-      page_url: payload?.data?.pageUrl ?? payload?.url,
-      user_agent: payload?.data?.userAgent ?? payload?.userAgent,
-      created_at: toIsoString(timestampToUse),
-    };
-
-    return metadata;
   }
 
   private async sendToSupabase(payload: any) {
     console.log('💾 Sending to Supabase...');
 
-    if (!isSupabaseConfigured || !supabase) {
-      throw new Error('Supabase is not configured');
-    }
-
     try {
-      const metadata = this.extractSupabaseMetadata(payload);
-
       if (payload.type === 'lead') {
         const leadData: LeadRecord = {
           first_name: payload.data.firstName,
@@ -284,40 +232,27 @@ export class OnlineDataCapture {
           package_selected: payload.data.packageBought,
           grade_selected: payload.data.gradeSelected || 'not_specified',
           source: payload.data.source || 'website',
-          ...(metadata.session_id ? { session_id: metadata.session_id } : {}),
-          ...(metadata.page_url ? { page_url: metadata.page_url } : {}),
-          ...(metadata.user_agent ? { user_agent: metadata.user_agent } : {}),
-          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
+          session_id: payload.sessionId,
         };
 
-        const { data: insertedLead, error } = await supabase
+        const { error } = await supabase
           .from('leads')
-          .insert([leadData])
-          .select()
-          .single();
+          .insert([leadData]);
 
         if (error) throw error;
         console.log('✅ Lead saved to Supabase');
-        return insertedLead;
       } else if (payload.type === 'bonus_signup') {
         const signupData: BonusSignupRecord = {
           email: payload.data.email,
-          source: payload.data.source || 'bonus_page',
-          ...(metadata.session_id ? { session_id: metadata.session_id } : {}),
-          ...(metadata.page_url ? { page_url: metadata.page_url } : {}),
-          ...(metadata.user_agent ? { user_agent: metadata.user_agent } : {}),
-          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
+          session_id: payload.sessionId,
         };
 
-        const { data: insertedSignup, error } = await supabase
+        const { error } = await supabase
           .from('bonus_signups')
-          .insert([signupData])
-          .select()
-          .single();
+          .insert([signupData]);
 
         if (error) throw error;
         console.log('✅ Bonus signup saved to Supabase');
-        return insertedSignup;
       } else if (payload.type === 'analytics_event') {
         const eventData: AnalyticsEventRecord = {
           event_name: payload.data.eventName,
@@ -326,18 +261,14 @@ export class OnlineDataCapture {
           user_id: payload.data.userId,
           page_url: payload.url,
           user_agent: payload.userAgent,
-          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
         };
 
-        const { data: insertedEvent, error } = await supabase
+        const { error } = await supabase
           .from('analytics_events')
-          .insert([eventData])
-          .select()
-          .single();
+          .insert([eventData]);
 
         if (error) throw error;
         console.log('✅ Analytics event saved to Supabase');
-        return insertedEvent;
       } else if (payload.type === 'page_view' || payload.type === 'page_visit' || payload.type === 'page_visit_end') {
         const eventData: AnalyticsEventRecord = {
           event_name: payload.type,
@@ -345,73 +276,18 @@ export class OnlineDataCapture {
           session_id: payload.sessionId,
           page_url: payload.url,
           user_agent: payload.userAgent,
-          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
         };
 
-        const { data: insertedPageEvent, error } = await supabase
+        const { error } = await supabase
           .from('analytics_events')
-          .insert([eventData])
-          .select()
-          .single();
+          .insert([eventData]);
 
         if (error) throw error;
         console.log('✅ Page visit saved to Supabase');
-        return insertedPageEvent;
       }
     } catch (error) {
       console.error('❌ Supabase error:', error);
       throw new Error(`Supabase failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  private async sendToBackend(payload: any) {
-    if (!this.apiEndpoint) {
-      throw new Error('No data capture endpoint configured');
-    }
-
-    console.log('🌐 Sending payload to backend endpoint:', this.apiEndpoint);
-
-    try {
-      const response = await fetch(this.apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      let parsed: any = null;
-      let fallbackText: string | null = null;
-
-      try {
-        parsed = await response.clone().json();
-      } catch (parseError) {
-        console.warn('⚠️ Backend response was not JSON, falling back to text parse:', parseError);
-        fallbackText = await response.text();
-      }
-
-      if (!response.ok) {
-        const errorMessage =
-          (parsed && typeof parsed === 'object' && 'error' in parsed && typeof parsed.error === 'string'
-            ? parsed.error
-            : null) || fallbackText || `HTTP ${response.status}`;
-        throw new Error(`Backend endpoint failed: ${errorMessage}`);
-      }
-
-      if (parsed && typeof parsed === 'object') {
-        const normalized =
-          'record' in parsed && parsed.record
-            ? parsed.record
-            : 'data' in parsed && parsed.data
-              ? parsed.data
-              : parsed;
-        return normalized;
-      }
-
-      return fallbackText ?? null;
-    } catch (error) {
-      console.error('❌ Backend endpoint error:', error);
-      throw error;
     }
   }
 
@@ -554,22 +430,7 @@ export class OnlineDataCapture {
     };
 
     console.log('🔥 Prepared lead object:', lead);
-    const supabaseLead = await this.sendData('lead', lead);
-    if (supabaseLead && typeof supabaseLead === 'object') {
-      const record = supabaseLead as Partial<LeadRecord>;
-      if (record.id) {
-        lead.id = record.id;
-      }
-      if (record.session_id) {
-        lead.sessionId = record.session_id;
-      }
-      if (record.page_url) {
-        lead.pageUrl = record.page_url;
-      }
-      if (record.user_agent) {
-        lead.userAgent = record.user_agent;
-      }
-    }
+    await this.sendData('lead', lead);
     console.log('🔥 Lead sent to sendData');
     return lead;
   }
@@ -588,22 +449,7 @@ export class OnlineDataCapture {
     };
 
     console.log('🔥 Prepared bonus signup object:', signup);
-    const supabaseSignup = await this.sendData('bonus_signup', signup);
-    if (supabaseSignup && typeof supabaseSignup === 'object') {
-      const record = supabaseSignup as Partial<BonusSignupRecord>;
-      if (record.id) {
-        signup.id = record.id;
-      }
-      if (record.session_id) {
-        signup.sessionId = record.session_id;
-      }
-      if (record.page_url) {
-        signup.pageUrl = record.page_url;
-      }
-      if (record.user_agent) {
-        signup.userAgent = record.user_agent;
-      }
-    }
+    await this.sendData('bonus_signup', signup);
     console.log('🔥 Bonus signup sent to sendData');
     return signup;
   }
