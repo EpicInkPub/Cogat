@@ -1,13 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_CONFIG } from './config';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = SUPABASE_CONFIG.url;
+const supabaseAnonKey = SUPABASE_CONFIG.anonKey;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+const hasSupabaseConfig = supabaseUrl && supabaseAnonKey;
+
+console.log('🔧 Supabase Configuration Check:');
+console.log('  URL:', supabaseUrl ? '✅ SET' : '❌ MISSING');
+console.log('  Key:', supabaseAnonKey ? '✅ SET' : '❌ MISSING');
+console.log('  Configured:', hasSupabaseConfig);
+
+if (!hasSupabaseConfig) {
+  console.warn('Supabase environment variables not configured. Database features will be disabled.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = hasSupabaseConfig
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+export const isSupabaseConfigured = hasSupabaseConfig;
 
 export interface LeadRecord {
   id?: string;
