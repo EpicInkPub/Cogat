@@ -188,34 +188,34 @@ export class OnlineDataCapture {
       this.fallbackStorage.push(payload);
       try {
         localStorage.setItem('fallback_data', JSON.stringify(this.fallbackStorage));
+        console.warn('⚠️ All online services unavailable. Data saved locally and will be available for export.', payload);
       } catch (storageError) {
         console.warn('⚠️ Failed to persist fallback data to localStorage:', storageError);
+
+        const context: DataCaptureErrorContext = {
+          type,
+          source:
+            typeof data === 'object' && data !== null && 'source' in data
+              ? String((data as { source?: unknown }).source)
+              : undefined,
+          servicesAttempted: services.map((serviceFn) => formatServiceName(serviceFn)),
+          errors: errors.map(({ service, error }) => ({
+            service,
+            message: error instanceof Error ? error.message : String(error),
+          })),
+        };
+
+        const baseMessage = context.source
+          ? `All data capture services failed for type "${type}" (source "${context.source}").`
+          : `All data capture services failed for type "${type}".`;
+        const reasonDetails = context.errors.length
+          ? ` Reasons: ${context.errors
+              .map(({ service, message }) => `${service}: ${message}`)
+              .join('; ')}.`
+          : '';
+
+        throw new DataCaptureSubmissionError(`${baseMessage}${reasonDetails}`, context);
       }
-      console.warn('❌ All services failed, data stored locally as fallback:', payload);
-
-      const context: DataCaptureErrorContext = {
-        type,
-        source:
-          typeof data === 'object' && data !== null && 'source' in data
-            ? String((data as { source?: unknown }).source)
-            : undefined,
-        servicesAttempted: services.map((serviceFn) => formatServiceName(serviceFn)),
-        errors: errors.map(({ service, error }) => ({
-          service,
-          message: error instanceof Error ? error.message : String(error),
-        })),
-      };
-
-      const baseMessage = context.source
-        ? `All data capture services failed for type "${type}" (source "${context.source}").`
-        : `All data capture services failed for type "${type}".`;
-      const reasonDetails = context.errors.length
-        ? ` Reasons: ${context.errors
-            .map(({ service, message }) => `${service}: ${message}`)
-            .join('; ')}.`
-        : '';
-
-      throw new DataCaptureSubmissionError(`${baseMessage}${reasonDetails}`, context);
     }
   }
 
