@@ -90,50 +90,17 @@ Add the following entries to your `.env` file (or hosting provider):
 VITE_DATA_CAPTURE_ENDPOINT=https://your-bolt-new-function-url
 
 # Direct Supabase access (used as fallback)
-# The app now also reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` so you can
-# reuse the credentials provided by Supabase hosting without renaming them.
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
-
-> **Tip:** Supabase hosting sometimes injects values wrapped in quotes (for
-> example `"https://xyz.supabase.co"`). The app now trims these automatically,
-> but you should verify the stored values do not include extra quotes or
-> whitespace so the browser can resolve the domain correctly.
 
 With these values in place the app can persist leads and contacts through your
 Bolt New backend functions while still retaining the enhanced client-side
 fallbacks.
 
-### Row Level Security policies
-
-If Row Level Security (RLS) is enabled on your Supabase project, create
-explicit `INSERT` policies for the tables this app writes to (`leads`,
-`bonus_signups`, and `analytics_events`). Without these policies the anon key
-used in the browser will be rejected even though the credentials are present.
-
-An example policy that allows unauthenticated inserts while still preventing
-reads looks like this:
-
-```sql
--- Repeat for each table that should accept public submissions
-create policy "Allow inserts from public website"
-  on public.leads
-  for insert
-  with check (true);
-
-alter table public.leads enable row level security;
-```
-
-Adjust the policy logic to fit your data requirements. Alternatively, proxy the
-requests through a trusted backend (using the Supabase service role key) so the
-browser never needs direct access to the database.
-
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/0f2329e5-71cc-4ed7-b9ad-7622f15b75de) and click on Share -> Publish.
-
-**Important**: The project includes a `.env.production` file and `netlify.toml` configuration that ensures Supabase environment variables are included in production builds. These files ensure that data capture works correctly in deployed environments, not just in the Lovable preview.
 
 ## Can I connect a custom domain to my Lovable project?
 

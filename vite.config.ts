@@ -31,5 +31,4 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: "jsdom",
   },
-  envPrefix: ["VITE_", "SUPABASE_"],
 }));

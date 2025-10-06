@@ -156,16 +156,17 @@ export class OnlineDataCapture {
 
     const services: Array<(payload: any) => Promise<any>> = [];
 
-    if (isSupabaseConfigured && supabase) {
-      services.push(this.sendToSupabase.bind(this));
-    }
+    services.push(this.sendToGoogleSheets.bind(this));
 
     if (this.apiEndpoint) {
       services.push(this.sendToBackend.bind(this));
     }
 
+    if (isSupabaseConfigured && supabase) {
+      services.push(this.sendToSupabase.bind(this));
+    }
+
     services.push(
-      this.sendToGoogleSheets.bind(this),
       this.sendToWebhook.bind(this),
       this.sendToFormspree.bind(this),
       this.sendToNetlifyForms.bind(this)
@@ -296,7 +297,7 @@ export class OnlineDataCapture {
           .select()
           .single();
 
-        if (error) throw this.createSupabaseInsertError('leads', error);
+        if (error) throw error;
         console.log('✅ Lead saved to Supabase');
         return insertedLead;
       } else if (payload.type === 'bonus_signup') {
@@ -315,7 +316,7 @@ export class OnlineDataCapture {
           .select()
           .single();
 
-        if (error) throw this.createSupabaseInsertError('bonus_signups', error);
+        if (error) throw error;
         console.log('✅ Bonus signup saved to Supabase');
         return insertedSignup;
       } else if (payload.type === 'analytics_event') {
@@ -335,7 +336,7 @@ export class OnlineDataCapture {
           .select()
           .single();
 
-        if (error) throw this.createSupabaseInsertError('analytics_events', error);
+        if (error) throw error;
         console.log('✅ Analytics event saved to Supabase');
         return insertedEvent;
       } else if (payload.type === 'page_view' || payload.type === 'page_visit' || payload.type === 'page_visit_end') {
@@ -354,62 +355,14 @@ export class OnlineDataCapture {
           .select()
           .single();
 
-        if (error) throw this.createSupabaseInsertError('analytics_events', error);
+        if (error) throw error;
         console.log('✅ Page visit saved to Supabase');
         return insertedPageEvent;
       }
     } catch (error) {
       console.error('❌ Supabase error:', error);
-      if (error instanceof Error) {
-        const normalizedMessage = error.message.toLowerCase();
-        if (normalizedMessage.includes('failed to fetch') || normalizedMessage.includes('err_name_not_resolved')) {
-          throw new Error(
-            `${error.message}. The browser could not reach the Supabase REST endpoint; confirm your Supabase URL resolves publicly and that the environment variables match your project.`
-          );
-        }
-        throw error;
-      }
-      throw new Error(`Supabase failed: ${String(error)}`);
+      throw new Error(`Supabase failed: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }
-
-  private createSupabaseInsertError(table: string, rawError: unknown): Error {
-    type PostgrestErrorShape = {
-      message?: string;
-      details?: string;
-      hint?: string;
-      code?: string;
-    };
-
-    const baseMessage = `Supabase insert into "${table}" failed`;
-
-    if (rawError && typeof rawError === 'object') {
-      const { message, details, hint, code } = rawError as PostgrestErrorShape;
-      const parts = [message, details, hint, code ? `code ${code}` : ''].filter(
-        (part): part is string => typeof part === 'string' && part.trim().length > 0
-      );
-
-      const combined = parts.join(' ').toLowerCase();
-      const rlsTriggered =
-        combined.includes('row level security') ||
-        combined.includes('row-level security') ||
-        combined.includes('permission denied') ||
-        combined.includes('insufficient privileges') ||
-        combined.includes('insufficient privilege');
-
-      const rlsHint = rlsTriggered
-        ? ' Supabase reported a Row Level Security violation. Add an INSERT policy for the anon role (or route requests through a trusted service using a service role key) so the table accepts public writes.'
-        : '';
-
-      const messageBody = parts.length > 0 ? parts.join(' — ') : 'Unknown error.';
-      return new Error(`${baseMessage}: ${messageBody}.${rlsHint}`);
-    }
-
-    if (rawError instanceof Error) {
-      return new Error(`${baseMessage}: ${rawError.message}`);
-    }
-
-    return new Error(`${baseMessage}: ${String(rawError)}`);
   }
 
   private async sendToBackend(payload: any) {

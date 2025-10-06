@@ -1,64 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const sanitizeEnvValue = (value?: string): string => {
-  if (typeof value !== 'string') return '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-  let trimmed = value.trim();
-  if (!trimmed) return '';
-  if (trimmed === 'undefined' || trimmed === 'null') return '';
-
-  const firstChar = trimmed.charAt(0);
-  const lastChar = trimmed.charAt(trimmed.length - 1);
-  const matchingQuotes =
-    (firstChar === lastChar && ['"', "'", '`'].includes(firstChar)) ||
-    (firstChar === '“' && lastChar === '”') ||
-    (firstChar === '”' && lastChar === '“');
-
-  if (matchingQuotes) {
-    trimmed = trimmed.slice(1, -1).trim();
-  }
-
-  return trimmed;
-};
-
-const validateSupabaseUrl = (value: string): string => {
-  if (!value) return '';
-
-  try {
-    const parsed = new URL(value);
-
-    if (!/^https?:$/.test(parsed.protocol)) {
-      throw new Error(`Unsupported protocol: ${parsed.protocol}`);
-    }
-
-    return parsed.origin;
-  } catch (error) {
-    console.error(
-      'Supabase URL environment variable is invalid and will be ignored. Received value:',
-      value,
-      error
-    );
-    return '';
-  }
-};
-
-const rawSupabaseUrl =
-  sanitizeEnvValue(import.meta.env.VITE_SUPABASE_URL) ||
-  sanitizeEnvValue(import.meta.env.SUPABASE_URL);
-
-const supabaseUrl = validateSupabaseUrl(rawSupabaseUrl);
-
-const supabaseAnonKey =
-  sanitizeEnvValue(import.meta.env.VITE_SUPABASE_ANON_KEY) ||
-  sanitizeEnvValue(import.meta.env.SUPABASE_ANON_KEY);
-
-if (rawSupabaseUrl && !supabaseUrl) {
-  console.warn(
-    'Supabase URL was provided but is not a valid https URL. Check for extra quotes or typos in your environment configuration.'
-  );
-}
-
-const hasSupabaseConfig = supabaseUrl !== '' && supabaseAnonKey !== '';
+const hasSupabaseConfig = supabaseUrl && supabaseAnonKey;
 
 if (!hasSupabaseConfig) {
   console.warn('Supabase environment variables not configured. Database features will be disabled.');
