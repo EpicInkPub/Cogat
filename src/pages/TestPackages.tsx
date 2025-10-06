@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Users, Clock, FileText, Award, Zap, Loader2 } from "lucide-react";
+import { CircleCheck as CheckCircle2, Users, Clock, FileText, Award, Zap, Loader as Loader2 } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { dataCapture } from "@/lib/dataCapture";
 import { toast } from "@/hooks/use-toast";
