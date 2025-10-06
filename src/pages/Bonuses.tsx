@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Download, 
-  BookOpen, 
-  FileText, 
+import {
+  Download,
+  BookOpen,
+  FileText,
   CheckCircle2,
   Gift,
   Lock,
   Unlock,
   Award,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { dataCapture } from "@/lib/dataCapture";
@@ -27,6 +28,7 @@ export default function Bonuses() {
   const [email, setEmail] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     analytics.pageView('bonuses');
@@ -44,7 +46,7 @@ export default function Bonuses() {
 
   const handleUnlockBonuses = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !email.includes('@')) {
       toast({
         title: "Invalid Email",
@@ -55,12 +57,17 @@ export default function Bonuses() {
       return;
     }
 
+    setIsSubmitting(true);
+
+    toast({
+      title: "Processing...",
+      description: "Unlocking your bonus materials...",
+    });
+
     console.log('🎁 Submitting bonus signup with email:', email);
 
-    // Track form submission
     analytics.trackFormStart('bonus_signup');
 
-    // Capture bonus signup online
     try {
       console.log('🎁 About to capture bonus signup with dataCapture.captureBonusSignup...');
       const signup = await dataCapture.captureBonusSignup(email, 'bonus_page');
@@ -71,13 +78,10 @@ export default function Bonuses() {
       setIsUnlocked(true);
       setHasSubmitted(true);
 
-      // Set user ID for analytics
       analytics.setUserId(signup.id);
 
-      // Track bonus unlock
       analytics.trackBonusUnlock(email);
 
-      // Track user journey
       analytics.trackUserJourney('bonuses_unlocked', {
         signupId: signup.id
       });
@@ -86,6 +90,7 @@ export default function Bonuses() {
         title: "Success!",
         description: "Your bonus materials have been unlocked. Click any item to download.",
       });
+      setIsSubmitting(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('❌ Failed to capture bonus signup:', error);
@@ -96,6 +101,7 @@ export default function Bonuses() {
         description: "We couldn't unlock your bonuses. Please try again.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
     }
   };
 
@@ -145,8 +151,15 @@ export default function Bonuses() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" variant="hero">
-                    Unlock Free Materials
+                  <Button type="submit" className="w-full" variant="hero" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Unlocking...
+                      </>
+                    ) : (
+                      'Unlock Free Materials'
+                    )}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
                     We respect your privacy. No spam, ever.

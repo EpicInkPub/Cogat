@@ -8,6 +8,7 @@ import TestPackages from "./pages/TestPackages";
 import Bonuses from "./pages/Bonuses";
 import ThankYou from "./pages/ThankYou";
 import DataExport from "./pages/DataExport";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/bonuses" element={<Bonuses />} />
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/data-export" element={<DataExport />} />
+          <Route path="/analytics" element={<Analytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

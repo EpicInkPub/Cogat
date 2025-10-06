@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Users, Clock, FileText, Award, Zap } from "lucide-react";
+import { CheckCircle2, Users, Clock, FileText, Award, Zap, Loader2 } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { dataCapture } from "@/lib/dataCapture";
 import { toast } from "@/hooks/use-toast";
@@ -84,6 +84,7 @@ export default function TestPackages() {
   const navigate = useNavigate();
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -121,7 +122,7 @@ export default function TestPackages() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       toast({
         title: "Missing Information",
@@ -130,6 +131,13 @@ export default function TestPackages() {
       });
       return;
     }
+
+    setIsSubmitting(true);
+
+    toast({
+      title: "Processing Order",
+      description: "Please wait while we process your information...",
+    });
 
     console.log('📝 Submitting lead form with data:', {
       firstName: formData.firstName,
@@ -141,10 +149,8 @@ export default function TestPackages() {
       source: 'test_package'
     });
 
-    // Track form submission attempt
     analytics.trackFormStart('package_order');
 
-    // Capture lead data online
     try {
       console.log('📝 About to capture lead with dataCapture.captureLead...');
       const lead = await dataCapture.captureLead({
@@ -159,30 +165,32 @@ export default function TestPackages() {
       console.log('📝 Lead captured:', lead);
 
       analytics.trackFormSubmission('package_order', formData, true);
-
-      // Set user ID for analytics
       analytics.setUserId(lead.id);
 
-      // Track purchase completion
       analytics.trackPurchaseComplete({
         ...lead,
         price: selectedPackage?.price
       });
 
-      // Track user journey
       analytics.trackUserJourney('purchase_completed', {
         packageId: selectedPackage?.id,
         price: selectedPackage?.price
       });
 
-      // Navigate to thank you page
-      navigate('/thank-you', {
-        state: {
-          name: formData.firstName,
-          package: selectedPackage?.title,
-          grade: selectedPackage?.grade
-        }
+      toast({
+        title: "Order Submitted Successfully!",
+        description: "Redirecting to confirmation page...",
       });
+
+      setTimeout(() => {
+        navigate('/thank-you', {
+          state: {
+            name: formData.firstName,
+            package: selectedPackage?.title,
+            grade: selectedPackage?.grade
+          }
+        });
+      }, 500);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('❌ Failed to capture lead submission:', error);
@@ -193,6 +201,7 @@ export default function TestPackages() {
         description: 'We were unable to submit your information. Please try again.',
         variant: 'destructive'
       });
+      setIsSubmitting(false);
       return;
     }
   };
@@ -370,8 +379,15 @@ export default function TestPackages() {
                 <span className="text-2xl font-bold text-primary">{selectedPackage?.price}</span>
               </div>
             </div>
-            <Button type="submit" className="w-full" variant="hero" size="lg">
-              Order Now
+            <Button type="submit" className="w-full" variant="hero" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Order Now'
+              )}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
               This is a test order. No payment will be processed.
