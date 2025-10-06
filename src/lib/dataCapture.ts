@@ -168,11 +168,12 @@ export class OnlineDataCapture {
     const errors: Array<{ service: string; error: unknown }> = [];
 
     let success = false;
+    let serviceResult: unknown = null;
     for (const service of services) {
       const serviceName = formatServiceName(service);
       try {
         console.log('🚀 Trying service:', serviceName);
-        await service(payload);
+        serviceResult = await service(payload);
         console.log('✅ Service succeeded:', serviceName);
         success = true;
         break; // If one succeeds, we're good
@@ -217,6 +218,42 @@ export class OnlineDataCapture {
         throw new DataCaptureSubmissionError(`${baseMessage}${reasonDetails}`, context);
       }
     }
+
+    return serviceResult ?? payload;
+  }
+
+  private extractSupabaseMetadata(payload: any) {
+    const rawTimestamp =
+      (payload?.data && typeof payload.data === 'object' && 'timestamp' in payload.data)
+        ? Number((payload.data as { timestamp?: number | string }).timestamp)
+        : undefined;
+
+    const fallbackTimestamp = typeof rawTimestamp === 'number' && !Number.isNaN(rawTimestamp)
+      ? rawTimestamp
+      : typeof rawTimestamp === 'string' && rawTimestamp
+        ? Date.parse(rawTimestamp)
+        : undefined;
+
+    const timestampToUse = fallbackTimestamp ?? (typeof payload?.timestamp === 'number' ? payload.timestamp : Date.now());
+
+    const toIsoString = (value?: number) => {
+      if (!value || Number.isNaN(value)) return undefined;
+      try {
+        return new Date(value).toISOString();
+      } catch (error) {
+        console.warn('⚠️ Failed to convert timestamp to ISO string:', error);
+        return undefined;
+      }
+    };
+
+    const metadata = {
+      session_id: payload?.sessionId ?? payload?.data?.sessionId,
+      page_url: payload?.data?.pageUrl ?? payload?.url,
+      user_agent: payload?.data?.userAgent ?? payload?.userAgent,
+      created_at: toIsoString(timestampToUse),
+    };
+
+    return metadata;
   }
 
   private async sendToSupabase(payload: any) {
@@ -227,6 +264,8 @@ export class OnlineDataCapture {
     }
 
     try {
+      const metadata = this.extractSupabaseMetadata(payload);
+
       if (payload.type === 'lead') {
         const leadData: LeadRecord = {
           first_name: payload.data.firstName,
@@ -236,27 +275,40 @@ export class OnlineDataCapture {
           package_selected: payload.data.packageBought,
           grade_selected: payload.data.gradeSelected || 'not_specified',
           source: payload.data.source || 'website',
-          session_id: payload.sessionId,
+          ...(metadata.session_id ? { session_id: metadata.session_id } : {}),
+          ...(metadata.page_url ? { page_url: metadata.page_url } : {}),
+          ...(metadata.user_agent ? { user_agent: metadata.user_agent } : {}),
+          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
         };
 
-        const { error } = await supabase
+        const { data: insertedLead, error } = await supabase
           .from('leads')
-          .insert([leadData]);
+          .insert([leadData])
+          .select()
+          .single();
 
         if (error) throw error;
         console.log('✅ Lead saved to Supabase');
+        return insertedLead;
       } else if (payload.type === 'bonus_signup') {
         const signupData: BonusSignupRecord = {
           email: payload.data.email,
-          session_id: payload.sessionId,
+          source: payload.data.source || 'bonus_page',
+          ...(metadata.session_id ? { session_id: metadata.session_id } : {}),
+          ...(metadata.page_url ? { page_url: metadata.page_url } : {}),
+          ...(metadata.user_agent ? { user_agent: metadata.user_agent } : {}),
+          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
         };
 
-        const { error } = await supabase
+        const { data: insertedSignup, error } = await supabase
           .from('bonus_signups')
-          .insert([signupData]);
+          .insert([signupData])
+          .select()
+          .single();
 
         if (error) throw error;
         console.log('✅ Bonus signup saved to Supabase');
+        return insertedSignup;
       } else if (payload.type === 'analytics_event') {
         const eventData: AnalyticsEventRecord = {
           event_name: payload.data.eventName,
@@ -265,14 +317,18 @@ export class OnlineDataCapture {
           user_id: payload.data.userId,
           page_url: payload.url,
           user_agent: payload.userAgent,
+          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
         };
 
-        const { error } = await supabase
+        const { data: insertedEvent, error } = await supabase
           .from('analytics_events')
-          .insert([eventData]);
+          .insert([eventData])
+          .select()
+          .single();
 
         if (error) throw error;
         console.log('✅ Analytics event saved to Supabase');
+        return insertedEvent;
       } else if (payload.type === 'page_view' || payload.type === 'page_visit' || payload.type === 'page_visit_end') {
         const eventData: AnalyticsEventRecord = {
           event_name: payload.type,
@@ -280,14 +336,18 @@ export class OnlineDataCapture {
           session_id: payload.sessionId,
           page_url: payload.url,
           user_agent: payload.userAgent,
+          ...(metadata.created_at ? { created_at: metadata.created_at } : {}),
         };
 
-        const { error } = await supabase
+        const { data: insertedPageEvent, error } = await supabase
           .from('analytics_events')
-          .insert([eventData]);
+          .insert([eventData])
+          .select()
+          .single();
 
         if (error) throw error;
         console.log('✅ Page visit saved to Supabase');
+        return insertedPageEvent;
       }
     } catch (error) {
       console.error('❌ Supabase error:', error);
@@ -434,7 +494,22 @@ export class OnlineDataCapture {
     };
 
     console.log('🔥 Prepared lead object:', lead);
-    await this.sendData('lead', lead);
+    const supabaseLead = await this.sendData('lead', lead);
+    if (supabaseLead && typeof supabaseLead === 'object') {
+      const record = supabaseLead as Partial<LeadRecord>;
+      if (record.id) {
+        lead.id = record.id;
+      }
+      if (record.session_id) {
+        lead.sessionId = record.session_id;
+      }
+      if (record.page_url) {
+        lead.pageUrl = record.page_url;
+      }
+      if (record.user_agent) {
+        lead.userAgent = record.user_agent;
+      }
+    }
     console.log('🔥 Lead sent to sendData');
     return lead;
   }
@@ -453,7 +528,22 @@ export class OnlineDataCapture {
     };
 
     console.log('🔥 Prepared bonus signup object:', signup);
-    await this.sendData('bonus_signup', signup);
+    const supabaseSignup = await this.sendData('bonus_signup', signup);
+    if (supabaseSignup && typeof supabaseSignup === 'object') {
+      const record = supabaseSignup as Partial<BonusSignupRecord>;
+      if (record.id) {
+        signup.id = record.id;
+      }
+      if (record.session_id) {
+        signup.sessionId = record.session_id;
+      }
+      if (record.page_url) {
+        signup.pageUrl = record.page_url;
+      }
+      if (record.user_agent) {
+        signup.userAgent = record.user_agent;
+      }
+    }
     console.log('🔥 Bonus signup sent to sendData');
     return signup;
   }
