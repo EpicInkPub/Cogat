@@ -5,17 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Users,
   TrendingUp,
   ShoppingCart,
-  Eye,
   Mail,
   Activity,
-  Calendar,
   Download,
   RefreshCw
 } from "lucide-react";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import {
   BarChart,
@@ -57,6 +53,16 @@ interface EventData {
   count: number;
 }
 
+interface Lead {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  packageBought: string;
+  gradeSelected: string;
+  timestamp: string;
+}
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function Analytics() {
@@ -70,54 +76,54 @@ export default function Analytics() {
   const [packageData, setPackageData] = useState<PackageData[]>([]);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [topEvents, setTopEvents] = useState<EventData[]>([]);
-  const [recentLeads, setRecentLeads] = useState<any[]>([]);
+  const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
 
   const loadAnalytics = async () => {
     setIsLoading(true);
     try {
-      if (!isSupabaseConfigured || !supabase) {
+      const fallbackData = localStorage.getItem('fallback_data');
+
+      if (!fallbackData) {
         toast({
-          title: "Database Not Configured",
-          description: "Please configure Supabase environment variables to view analytics.",
-          variant: "destructive"
+          title: "No Data Available",
+          description: "No analytics data found. Data will appear as users interact with your site.",
         });
         setIsLoading(false);
         return;
       }
 
+      const allData = JSON.parse(fallbackData);
+
       const now = new Date();
       const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       const startDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
 
-      const { data: leads, error: leadsError } = await supabase
-        .from('leads')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false });
+      const leads = allData.filter((item: any) =>
+        item.type === 'lead' &&
+        new Date(item.timestamp) >= startDate
+      ).map((item: any) => item.data);
 
-      const { data: bonusSignups, error: signupsError } = await supabase
-        .from('bonus_signups')
-        .select('*')
-        .gte('created_at', startDate.toISOString());
+      const bonusSignups = allData.filter((item: any) =>
+        item.type === 'bonus_signup' &&
+        new Date(item.timestamp) >= startDate
+      ).map((item: any) => item.data);
 
-      const { data: events, error: eventsError } = await supabase
-        .from('analytics_events')
-        .select('*')
-        .gte('created_at', startDate.toISOString());
+      const events = allData.filter((item: any) =>
+        (item.type === 'analytics_event' ||
+         item.type === 'page_visit' ||
+         item.type === 'page_visit_end') &&
+        new Date(item.timestamp) >= startDate
+      ).map((item: any) => item.data);
 
-      if (leadsError || signupsError || eventsError) {
-        throw new Error('Failed to fetch analytics data');
-      }
-
-      const totalLeads = leads?.length || 0;
-      const totalBonusSignups = bonusSignups?.length || 0;
-      const totalEvents = events?.length || 0;
+      const totalLeads = leads.length;
+      const totalBonusSignups = bonusSignups.length;
+      const totalEvents = events.length;
 
       const packageCounts: Record<string, number> = {};
-      leads?.forEach(lead => {
-        const pkg = lead.package_selected || 'Unknown';
+      leads.forEach((lead: any) => {
+        const pkg = lead.packageBought || 'Unknown';
         packageCounts[pkg] = (packageCounts[pkg] || 0) + 1;
       });
 
@@ -155,15 +161,15 @@ export default function Analytics() {
         dailyData[dateKey] = { leads: 0, signups: 0 };
       }
 
-      leads?.forEach(lead => {
-        const date = dateFormatter(new Date(lead.created_at));
+      leads.forEach((lead: any) => {
+        const date = dateFormatter(new Date(lead.timestamp));
         if (dailyData[date]) {
           dailyData[date].leads++;
         }
       });
 
-      bonusSignups?.forEach(signup => {
-        const date = dateFormatter(new Date(signup.created_at));
+      bonusSignups.forEach((signup: any) => {
+        const date = dateFormatter(new Date(signup.timestamp));
         if (dailyData[date]) {
           dailyData[date].signups++;
         }
@@ -178,8 +184,8 @@ export default function Analytics() {
       setTimeSeriesData(timeSeriesArray);
 
       const eventCounts: Record<string, number> = {};
-      events?.forEach(event => {
-        const name = event.event_name || 'Unknown';
+      events.forEach((event: any) => {
+        const name = event.eventName || event.page || 'Unknown';
         eventCounts[name] = (eventCounts[name] || 0) + 1;
       });
 
@@ -190,11 +196,11 @@ export default function Analytics() {
 
       setTopEvents(topEventsArray);
 
-      setRecentLeads(leads?.slice(0, 10) || []);
+      setRecentLeads(leads.slice(0, 10));
 
       toast({
         title: "Analytics Updated",
-        description: "Successfully loaded latest analytics data",
+        description: "Successfully loaded latest analytics data from local storage",
       });
     } catch (error) {
       console.error('Failed to load analytics:', error);
@@ -216,12 +222,12 @@ export default function Analytics() {
     const csvContent = [
       ['Lead Name', 'Email', 'Phone', 'Package', 'Grade', 'Date'].join(','),
       ...recentLeads.map(lead => [
-        `${lead.first_name} ${lead.last_name}`,
+        `${lead.firstName} ${lead.lastName}`,
         lead.email,
         lead.phone,
-        lead.package_selected,
-        lead.grade_selected,
-        new Date(lead.created_at).toLocaleDateString()
+        lead.packageBought,
+        lead.gradeSelected,
+        new Date(lead.timestamp).toLocaleDateString()
       ].join(','))
     ].join('\n');
 
@@ -443,24 +449,24 @@ export default function Analytics() {
                     {recentLeads.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">No leads found</p>
                     ) : (
-                      recentLeads.map((lead) => (
+                      recentLeads.map((lead, index) => (
                         <div
-                          key={lead.id}
+                          key={index}
                           className="flex items-center justify-between border-b pb-4 last:border-0"
                         >
                           <div className="flex-1">
                             <p className="font-medium">
-                              {lead.first_name} {lead.last_name}
+                              {lead.firstName} {lead.lastName}
                             </p>
                             <p className="text-sm text-muted-foreground">{lead.email}</p>
                           </div>
                           <div className="flex-1 text-center">
-                            <Badge variant="secondary">{lead.grade_selected}</Badge>
+                            <Badge variant="secondary">{lead.gradeSelected}</Badge>
                           </div>
                           <div className="flex-1 text-right">
-                            <p className="text-sm font-medium">{lead.package_selected}</p>
+                            <p className="text-sm font-medium">{lead.packageBought}</p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(lead.created_at).toLocaleDateString()}
+                              {new Date(lead.timestamp).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
