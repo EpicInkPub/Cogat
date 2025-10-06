@@ -15,7 +15,7 @@ import {
   Download,
   RefreshCw
 } from "lucide-react";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import {
   BarChart,
@@ -77,16 +77,6 @@ export default function Analytics() {
   const loadAnalytics = async () => {
     setIsLoading(true);
     try {
-      if (!isSupabaseConfigured || !supabase) {
-        toast({
-          title: "Database Not Configured",
-          description: "Please configure Supabase environment variables to view analytics.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-
       const now = new Date();
       const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       const startDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
