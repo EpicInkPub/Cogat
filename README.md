@@ -105,6 +105,30 @@ With these values in place the app can persist leads and contacts through your
 Bolt New backend functions while still retaining the enhanced client-side
 fallbacks.
 
+### Row Level Security policies
+
+If Row Level Security (RLS) is enabled on your Supabase project, create
+explicit `INSERT` policies for the tables this app writes to (`leads`,
+`bonus_signups`, and `analytics_events`). Without these policies the anon key
+used in the browser will be rejected even though the credentials are present.
+
+An example policy that allows unauthenticated inserts while still preventing
+reads looks like this:
+
+```sql
+-- Repeat for each table that should accept public submissions
+create policy "Allow inserts from public website"
+  on public.leads
+  for insert
+  with check (true);
+
+alter table public.leads enable row level security;
+```
+
+Adjust the policy logic to fit your data requirements. Alternatively, proxy the
+requests through a trusted backend (using the Supabase service role key) so the
+browser never needs direct access to the database.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/0f2329e5-71cc-4ed7-b9ad-7622f15b75de) and click on Share -> Publish.
