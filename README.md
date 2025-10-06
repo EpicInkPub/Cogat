@@ -102,6 +102,8 @@ fallbacks.
 
 Simply open [Lovable](https://lovable.dev/projects/0f2329e5-71cc-4ed7-b9ad-7622f15b75de) and click on Share -> Publish.
 
+**Important**: The project includes a `.env.production` file and `netlify.toml` configuration that ensures Supabase environment variables are included in production builds. These files ensure that data capture works correctly in deployed environments, not just in the Lovable preview.
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
