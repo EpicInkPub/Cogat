@@ -177,7 +177,9 @@ export class OnlineDataCapture {
         success = true;
         break; // If one succeeds, we're good
       } catch (error) {
-        console.warn(`❌ Service failed (${serviceName}):`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`❌ Service failed (${serviceName}):`, errorMessage);
+        console.warn('❌ Full error:', error);
         errors.push({ service: serviceName, error });
         continue;
       }
@@ -221,9 +223,14 @@ export class OnlineDataCapture {
 
   private async sendToSupabase(payload: any) {
     console.log('💾 Sending to Supabase...');
+    console.log('💾 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('💾 Supabase configured?:', isSupabaseConfigured);
+    console.log('💾 Supabase client exists?:', !!supabase);
 
     if (!isSupabaseConfigured || !supabase) {
-      throw new Error('Supabase is not configured');
+      const errorMsg = `Supabase is not configured. URL: ${import.meta.env.VITE_SUPABASE_URL ? 'SET' : 'MISSING'}, Key: ${import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'MISSING'}`;
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
     }
 
     try {
