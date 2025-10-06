@@ -1,4 +1,4 @@
-import { supabase, type LeadRecord, type BonusSignupRecord, type AnalyticsEventRecord } from './supabase';
+import { supabase, isSupabaseConfigured, type LeadRecord, type BonusSignupRecord, type AnalyticsEventRecord } from './supabase';
 
 export interface LeadData {
   id: string;
@@ -221,6 +221,10 @@ export class OnlineDataCapture {
 
   private async sendToSupabase(payload: any) {
     console.log('💾 Sending to Supabase...');
+
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase is not configured');
+    }
 
     try {
       if (payload.type === 'lead') {
