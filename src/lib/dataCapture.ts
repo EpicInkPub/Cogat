@@ -179,23 +179,37 @@ export class OnlineDataCapture {
 
     let success = false;
     let serviceResult: unknown = null;
+    let sheetsAttempted = false;
+    let supabaseAttempted = false;
 
-    // Try Google Sheets and Supabase BOTH (don't stop after first success)
+    // Try BOTH Google Sheets and Supabase (don't stop after first success)
     for (const service of services) {
       const serviceName = formatServiceName(service);
+
+      // Track which critical services we've tried
+      if (serviceName === 'sendToGoogleSheets') sheetsAttempted = true;
+      if (serviceName === 'sendToSupabase') supabaseAttempted = true;
+
       try {
         console.log('🚀 Trying service:', serviceName);
         serviceResult = await service(payload);
         console.log('✅ Service succeeded:', serviceName);
         success = true;
 
-        // Only break after Google Sheets AND Supabase have both been tried
-        if (serviceName === 'sendToSupabase' && services.length >= 2) {
+        // Continue trying until we've attempted both critical services
+        if (sheetsAttempted && supabaseAttempted) {
+          console.log('✅ Both Google Sheets and Supabase attempted, stopping');
           break;
         }
       } catch (error) {
-        console.warn(`❌ Service failed (${serviceName}):`, error);
+        console.error(`❌ Service failed (${serviceName}):`, error);
+        if (error instanceof Error) {
+          console.error(`❌ Error details: ${error.message}`);
+          console.error(`❌ Error stack:`, error.stack);
+        }
         errors.push({ service: serviceName, error });
+
+        // Continue trying even if Google Sheets fails - we want to hit Supabase too
         continue;
       }
     }
