@@ -156,17 +156,16 @@ export class OnlineDataCapture {
 
     const services: Array<(payload: any) => Promise<any>> = [];
 
-    services.push(this.sendToGoogleSheets.bind(this));
+    if (isSupabaseConfigured && supabase) {
+      services.push(this.sendToSupabase.bind(this));
+    }
 
     if (this.apiEndpoint) {
       services.push(this.sendToBackend.bind(this));
     }
 
-    if (isSupabaseConfigured && supabase) {
-      services.push(this.sendToSupabase.bind(this));
-    }
-
     services.push(
+      this.sendToGoogleSheets.bind(this),
       this.sendToWebhook.bind(this),
       this.sendToFormspree.bind(this),
       this.sendToNetlifyForms.bind(this)
