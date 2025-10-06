@@ -156,6 +156,8 @@ export class OnlineDataCapture {
 
     const services: Array<(payload: any) => Promise<any>> = [];
 
+    services.push(this.sendToGoogleSheets.bind(this));
+
     if (this.apiEndpoint) {
       services.push(this.sendToBackend.bind(this));
     }
@@ -165,7 +167,6 @@ export class OnlineDataCapture {
     }
 
     services.push(
-      this.sendToGoogleSheets.bind(this),
       this.sendToWebhook.bind(this),
       this.sendToFormspree.bind(this),
       this.sendToNetlifyForms.bind(this)
